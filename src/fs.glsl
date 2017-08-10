@@ -9,11 +9,12 @@ uniform uint romh;
 uniform usampler2D romtex;
 uniform uint sel0;
 uniform uint sel1;
+uniform float zoom;
 
 void main() {
     uint texw = 16384u;
-     uint x = uint(gl_FragCoord[0] - 0.5);
-     uint y = (wh - 1u) - uint(gl_FragCoord[1] - 0.5);
+     uint x = uint(gl_FragCoord[0]*zoom - 0.5);
+     uint y = (wh - 1u) - uint(gl_FragCoord[1]*zoom - 0.5);
      uint col = x / stride;
      uint bitidx = ((y  + (col*wh)) * stride) + (x % stride);
      

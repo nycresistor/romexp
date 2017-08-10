@@ -186,6 +186,14 @@ impl Visualizer {
         }
     }
     
+    fn set_zoom(&self, zoom : f32) {
+        unsafe {
+            gl::Uniform1f(
+                gl::GetUniformLocation(self.program,CString::new("zoom").unwrap().as_ptr()),
+                1.0/zoom);
+        }
+    }
+
     fn set_size(&self, size : (u32, u32)) {
         unsafe {
             gl::Uniform1ui(
@@ -231,6 +239,7 @@ fn main() {
     let mut stride = 8;
     viz.set_stride(stride);
     viz.set_selection(800,1600);
+    viz.set_zoom(1.0);
     while !viz.win.should_close() {
         unsafe { gl::ClearColor(1.0,0.0,0.0,1.0) };
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) };
