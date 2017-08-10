@@ -237,9 +237,10 @@ fn main() {
     let mut viz = Visualizer::new((512, 512), rom.len());
     unsafe { viz.set_data(rom.as_slice()); }
     let mut stride = 8;
+    let mut zoom = 1.0;
     viz.set_stride(stride);
     viz.set_selection(800,1600);
-    viz.set_zoom(1.0);
+    viz.set_zoom(zoom);
     while !viz.win.should_close() {
         unsafe { gl::ClearColor(1.0,0.0,0.0,1.0) };
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) };
@@ -263,6 +264,17 @@ fn main() {
                         stride = stride - 8;
                         viz.set_stride(stride);
                     }
+                },
+                glfw::WindowEvent::Key(Key::Down, _, Action::Press, _) => {
+                    if (zoom <= 1.0) { zoom = zoom / 2.0; }
+                    else { zoom = zoom - 1.0; }
+                    
+                    viz.set_zoom(zoom);
+                },
+                glfw::WindowEvent::Key(Key::Up, _, Action::Press, _) => {
+                    if (zoom >= 1.0) { zoom = zoom + 1.0; }
+                    else { zoom = zoom * 2.0; }
+                    viz.set_zoom(zoom);
                 },
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                     viz.win.set_should_close(true)
