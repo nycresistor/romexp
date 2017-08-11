@@ -9,7 +9,7 @@ use std::ptr;
 use std::str;
 use std::ffi::CString;
 
-// Vertex data
+// Two triangles to cover the window
 static VERTEX_DATA: [GLfloat; 12] = [
     -1.0, 1.0, -1.0, -1.0, 1.0, -1.0,
     -1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
@@ -87,6 +87,9 @@ pub struct Visualizer {
     pub events : std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
     program : GLuint,
     data : Vec<u8>,
+    data_len : usize,
+    stride : u32,
+    zoom : f32,
 }
 
 impl Visualizer {
@@ -136,7 +139,16 @@ impl Visualizer {
                                     0,
                                     ptr::null());
         }
-        let vz = Visualizer { glfw : glfw, win : window, events: events, program : program, data : Vec::new() };
+        let vz = Visualizer {
+            glfw : glfw,
+            win : window,
+            events: events,
+            program : program,
+            data : Vec::new(),
+            data_len : 0,
+            stride : 8,
+            zoom : 1.0,
+        };
         vz.set_size(size);
         vz
     }
@@ -150,6 +162,7 @@ impl Visualizer {
             let maxw : usize = 16384;
             let tw : usize = maxw;
             let th : usize = (dat.len() + (maxw-1))/maxw;
+            self.data_len = dat.len();
             self.data.reserve(tw*th);
             self.data.extend(dat.iter().cloned());
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
@@ -180,7 +193,8 @@ impl Visualizer {
         }
     }
     
-    pub fn set_zoom(&self, zoom : f32) {
+    pub fn set_zoom(&mut self, zoom : f32) {
+        self.zoom = zoom;
         unsafe {
             gl::Uniform1f(
                 gl::GetUniformLocation(self.program,CString::new("zoom").unwrap().as_ptr()),
@@ -199,11 +213,55 @@ impl Visualizer {
         }
     }
 
-    pub fn set_stride(&self, stride : u32) {
+    pub fn set_stride(&mut self, stride : u32) {
+        self.stride = stride;
         unsafe {
             gl::Uniform1ui(
                 gl::GetUniformLocation(self.program,CString::new("stride").unwrap().as_ptr()),
                 stride);
+        }
+    }
+
+    pub fn render(&mut self) {
+        unsafe { gl::ClearColor(1.0,0.0,0.0,1.0) };
+        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) };
+        unsafe { 
+            gl::BindTexture(gl::TEXTURE_1D, 1 );
+            gl::DrawArrays(gl::TRIANGLES, 0, 6) };
+        self.win.swap_buffers();
+    }
+
+    pub fn handle_events(&mut self) {
+        let events = glfw::flush_messages(&self.events).map(|(_,e)| e).collect::<Vec<glfw::WindowEvent>>();
+        for event in events {
+            match event {
+                glfw::WindowEvent::Key(Key::Right, _, Action::Press, _) |
+                glfw::WindowEvent::Key(Key::Right, _, Action::Repeat, _) => {
+                    if self.stride < (self.data_len - 7) as u32 {
+                        let s = self.stride + 8;
+                        self.set_stride(s);
+                    }
+                },
+                glfw::WindowEvent::Key(Key::Left, _, Action::Press, _) |
+                glfw::WindowEvent::Key(Key::Left, _, Action::Repeat, _)=> {
+                    if self.stride > 8 {
+                        let s = self.stride - 8;
+                        self.set_stride(s);
+                    }
+                },
+                glfw::WindowEvent::Key(Key::Down, _, Action::Press, _) => {
+                    let z = if self.zoom <= 1.0 { self.zoom / 2.0 } else { self.zoom - 1.0 };
+                    self.set_zoom(z);
+                },
+                glfw::WindowEvent::Key(Key::Up, _, Action::Press, _) => {
+                    let z = if self.zoom >= 1.0 { self.zoom + 1.0 } else { self.zoom * 2.0 };
+                    self.set_zoom(z);
+                },
+                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                    self.win.set_should_close(true)
+                },
+                _ => {},
+            }
         }
     }
 }

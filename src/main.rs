@@ -38,52 +38,13 @@ fn main() {
 
     let mut viz = viz::Visualizer::new((512, 512), rom.len());
     unsafe { viz.set_data(rom.as_slice()); }
-    let mut stride = 8;
-    let mut zoom = 1.0;
-    viz.set_stride(stride);
+    viz.set_stride(8);
     viz.set_selection(800,1600);
-    viz.set_zoom(zoom);
+    viz.set_zoom(1.0);
     while !viz.win.should_close() {
-        unsafe { gl::ClearColor(1.0,0.0,0.0,1.0) };
-        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) };
-        unsafe { 
-            gl::BindTexture(gl::TEXTURE_1D, 1 );
-            gl::DrawArrays(gl::TRIANGLES, 0, 6) };
-        viz.win.swap_buffers();
+        viz.render();
         viz.glfw.poll_events();
-        for (_, event) in glfw::flush_messages(&viz.events) {
-            match event {
-                glfw::WindowEvent::Key(Key::Right, _, Action::Press, _) |
-                glfw::WindowEvent::Key(Key::Right, _, Action::Repeat, _) => {
-                    if stride < (rom.len() - 7) as u32 {
-                        stride = stride + 8;
-                        viz.set_stride(stride);
-                    }
-                },
-                glfw::WindowEvent::Key(Key::Left, _, Action::Press, _) |
-                glfw::WindowEvent::Key(Key::Left, _, Action::Repeat, _)=> {
-                    if stride > 8 {
-                        stride = stride - 8;
-                        viz.set_stride(stride);
-                    }
-                },
-                glfw::WindowEvent::Key(Key::Down, _, Action::Press, _) => {
-                    if zoom <= 1.0 { zoom = zoom / 2.0; }
-                    else { zoom = zoom - 1.0; }
-                    
-                    viz.set_zoom(zoom);
-                },
-                glfw::WindowEvent::Key(Key::Up, _, Action::Press, _) => {
-                    if zoom >= 1.0 { zoom = zoom + 1.0; }
-                    else { zoom = zoom * 2.0; }
-                    viz.set_zoom(zoom);
-                },
-                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                    viz.win.set_should_close(true)
-                },
-                _ => {},
-            }
-        }
+        viz.handle_events();
     }
 
 }
