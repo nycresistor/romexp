@@ -7,12 +7,7 @@ use clap::{Arg,App};
 
 use memmap::{Mmap, Protection};
 
-use glfw::{Action, Context, Key};
-use gl::types::*;
-use std::mem;
-use std::ptr;
 use std::str;
-use std::ffi::CString;
 
 mod viz;
 

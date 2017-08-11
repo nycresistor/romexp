@@ -84,7 +84,7 @@ fn link_program(vs: GLuint, fs: GLuint) -> GLuint {
 pub struct Visualizer {
     pub glfw : glfw::Glfw,
     pub win : glfw::Window,
-    pub events : std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
+    events : std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
     program : GLuint,
     data : Vec<u8>,
     data_len : usize,
@@ -153,6 +153,12 @@ impl Visualizer {
         vz
     }
 
+    fn uniform_loc(&self, location : &str) -> GLint {
+        unsafe {
+            gl::GetUniformLocation(self.program, CString::new(location).unwrap().as_ptr())
+        }
+    }
+    
     pub fn set_data(&mut self, dat : &[u8]) {
         unsafe {
             // Load image as texture
@@ -172,62 +178,47 @@ impl Visualizer {
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::R8UI as i32, tw as GLsizei, th as GLsizei, 0,
                 gl::RED_INTEGER, gl::UNSIGNED_BYTE, self.data.as_ptr() as *const GLvoid);
             println!("Texture bound at {}, {}",texo, dat.len());
-            gl::Uniform1ui(
-                gl::GetUniformLocation(self.program,CString::new("romh").unwrap().as_ptr()),
-                th as u32);
-            gl::Uniform1i(
-                gl::GetUniformLocation(self.program,CString::new("romtex").unwrap().as_ptr()),
-                0);
+            gl::Uniform1ui(self.uniform_loc("romh"),th as u32);
+            gl::Uniform1i(self.uniform_loc("romtex"), 0);
             gl::BindTexture(gl::TEXTURE_1D, 0 );
         }
     }
 
     pub fn set_selection(&self, start : u32, finish : u32) {
         unsafe {
-            gl::Uniform1ui(
-                gl::GetUniformLocation(self.program,CString::new("sel0").unwrap().as_ptr()),
-                start);
-            gl::Uniform1ui(
-                gl::GetUniformLocation(self.program,CString::new("sel1").unwrap().as_ptr()),
-                finish);
+            gl::Uniform1ui(self.uniform_loc("sel0"),start);
+            gl::Uniform1ui(self.uniform_loc("sel1"),finish);
         }
     }
     
     pub fn set_zoom(&mut self, zoom : f32) {
         self.zoom = zoom;
         unsafe {
-            gl::Uniform1f(
-                gl::GetUniformLocation(self.program,CString::new("zoom").unwrap().as_ptr()),
-                1.0/zoom);
+            gl::Uniform1f(self.uniform_loc("zoom"),1.0/zoom);
         }
     }
 
     pub fn set_size(&self, size : (u32, u32)) {
         unsafe {
-            gl::Uniform1ui(
-                gl::GetUniformLocation(self.program,CString::new("ww").unwrap().as_ptr()),
-                size.0);
-            gl::Uniform1ui(
-                gl::GetUniformLocation(self.program,CString::new("wh").unwrap().as_ptr()),
-                size.1);
+            gl::Uniform1ui(self.uniform_loc("ww"),size.0);
+            gl::Uniform1ui(self.uniform_loc("wh"),size.1);
         }
     }
 
     pub fn set_stride(&mut self, stride : u32) {
         self.stride = stride;
         unsafe {
-            gl::Uniform1ui(
-                gl::GetUniformLocation(self.program,CString::new("stride").unwrap().as_ptr()),
-                stride);
+            gl::Uniform1ui(self.uniform_loc("stride"),stride);
         }
     }
 
     pub fn render(&mut self) {
-        unsafe { gl::ClearColor(1.0,0.0,0.0,1.0) };
-        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) };
         unsafe { 
+            gl::ClearColor(1.0,0.0,0.0,1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
             gl::BindTexture(gl::TEXTURE_1D, 1 );
-            gl::DrawArrays(gl::TRIANGLES, 0, 6) };
+            gl::DrawArrays(gl::TRIANGLES, 0, 6);
+        }
         self.win.swap_buffers();
     }
 
