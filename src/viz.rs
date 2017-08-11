@@ -109,9 +109,8 @@ impl Visualizer {
         println!("Max texture size: {}", mts);
         // Create vertex shader
         let vs = compile_shader(VS_SRC, gl::VERTEX_SHADER);
-        // Fragment shader needs size of data at compile time (in uints)
-        let fsstr = String::from(FS_SRC).replace("{}",(data_sz).to_string().as_str());
-        let fs = compile_shader(fsstr.as_str(), gl::FRAGMENT_SHADER);
+        // Fragment shader 
+        let fs = compile_shader(FS_SRC, gl::FRAGMENT_SHADER);
         let program = link_program(vs, fs);
 
         let mut vao = 0; let mut vbo = 0;
@@ -178,16 +177,16 @@ impl Visualizer {
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::R8UI as i32, tw as GLsizei, th as GLsizei, 0,
                 gl::RED_INTEGER, gl::UNSIGNED_BYTE, self.data.as_ptr() as *const GLvoid);
             println!("Texture bound at {}, {}",texo, dat.len());
-            gl::Uniform1ui(self.uniform_loc("romh"),th as u32);
+            gl::Uniform1ui(self.uniform_loc("datalen"),dat.len() as u32);
             gl::Uniform1i(self.uniform_loc("romtex"), 0);
+            gl::Uniform1ui(self.uniform_loc("texwidth"), maxw as u32);
             gl::BindTexture(gl::TEXTURE_1D, 0 );
         }
     }
 
     pub fn set_selection(&self, start : u32, finish : u32) {
         unsafe {
-            gl::Uniform1ui(self.uniform_loc("sel0"),start);
-            gl::Uniform1ui(self.uniform_loc("sel1"),finish);
+            gl::Uniform2ui(self.uniform_loc("selection"),start,finish);
         }
     }
     
@@ -200,15 +199,15 @@ impl Visualizer {
 
     pub fn set_size(&self, size : (u32, u32)) {
         unsafe {
-            gl::Uniform1ui(self.uniform_loc("ww"),size.0);
-            gl::Uniform1ui(self.uniform_loc("wh"),size.1);
+            gl::Uniform4ui(self.uniform_loc("win"),0,0,size.0,size.1);
         }
     }
 
     pub fn set_stride(&mut self, stride : u32) {
         self.stride = stride;
         unsafe {
-            gl::Uniform1ui(self.uniform_loc("stride"),stride);
+            gl::Uniform1ui(self.uniform_loc("bitstride"),stride);
+            gl::Uniform1ui(self.uniform_loc("colstride"),512 * stride);
         }
     }
 
