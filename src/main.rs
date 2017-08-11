@@ -31,7 +31,7 @@ fn main() {
     
     println!("Opened {}; size {} bytes",rom_path,rom.len());
 
-    let mut viz = viz::Visualizer::new((512, 512), rom.len());
+    let mut viz = viz::Visualizer::new((512, 512));
     unsafe { viz.set_data(rom.as_slice()); }
     viz.set_stride(8);
     viz.set_selection(800,1600);

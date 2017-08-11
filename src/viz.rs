@@ -93,7 +93,7 @@ pub struct Visualizer {
 }
 
 impl Visualizer {
-    pub fn new(size : (u32, u32), data_sz : usize) -> Visualizer {
+    pub fn new(size : (u32, u32)) -> Visualizer {
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
         let (mut window, events) = glfw.create_window(size.0, size.1 ,
                                                       "ROM explorer",

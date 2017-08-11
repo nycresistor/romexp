@@ -17,7 +17,7 @@ void main() {
      // corrected position in window
      vec2 fc = vec2( gl_FragCoord[0] - 0.5, float(win[3] - 1u) - (gl_FragCoord[1] - 0.5) );
      // absolute coordinates in bitmap
-     uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
+     uvec2 ac = uvec2( win.x + uint(fc.x * zoom), win.y + uint(fc.y * zoom) );
      uint col = ac.x / bitstride;
      uint row = ac.y;
      
