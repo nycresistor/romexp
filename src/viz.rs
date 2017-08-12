@@ -243,26 +243,28 @@ impl Visualizer {
         let events = glfw::flush_messages(&self.events).map(|(_,e)| e).collect::<Vec<glfw::WindowEvent>>();
         for event in events {
             match event {
-                glfw::WindowEvent::Key(Key::Right, _, Action::Press, _) |
-                glfw::WindowEvent::Key(Key::Right, _, Action::Repeat, _) => {
+                glfw::WindowEvent::Key(Key::PageUp, _, Action::Press, _) |
+                glfw::WindowEvent::Key(Key::PageUp, _, Action::Repeat, _) => {
                     if self.stride < (self.data_len - 7) as u32 {
                         let s = self.stride + 8;
                         self.set_stride(s);
                     }
                 },
-                glfw::WindowEvent::Key(Key::Left, _, Action::Press, _) |
-                glfw::WindowEvent::Key(Key::Left, _, Action::Repeat, _)=> {
+                glfw::WindowEvent::Key(Key::PageDown, _, Action::Press, _) |
+                glfw::WindowEvent::Key(Key::PageDown, _, Action::Repeat, _)=> {
                     if self.stride > 8 {
                         let s = self.stride - 8;
                         self.set_stride(s);
                     }
                 },
-                glfw::WindowEvent::Key(Key::Down, _, Action::Press, _) => {
-                    let z = if self.zoom <= 1.0 { self.zoom / 2.0 } else { self.zoom - 1.0 };
+                glfw::WindowEvent::Key(Key::Minus, _, Action::Press, _) |
+                glfw::WindowEvent::Key(Key::Minus, _, Action::Repeat, _) => {
+                    let z = if self.zoom <= 1.0 { 1.0 } else { self.zoom - 1.0 };
                     self.set_zoom(z);
                 },
-                glfw::WindowEvent::Key(Key::Up, _, Action::Press, _) => {
-                    let z = if self.zoom >= 1.0 { self.zoom + 1.0 } else { self.zoom * 2.0 };
+                glfw::WindowEvent::Key(Key::Equal, _, Action::Press, _) |
+                glfw::WindowEvent::Key(Key::Equal, _, Action::Repeat, _) => {
+                    let z = if self.zoom >= 1.0 { self.zoom + 1.0 } else { 1.0 };
                     self.set_zoom(z);
                 },
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
