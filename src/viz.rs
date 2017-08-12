@@ -90,6 +90,8 @@ pub struct Visualizer {
     data_len : usize,
     stride : u32,
     zoom : f32,
+    offset : (u32,u32),
+    size : (u32, u32),
 }
 
 impl Visualizer {
@@ -138,7 +140,7 @@ impl Visualizer {
                                     0,
                                     ptr::null());
         }
-        let vz = Visualizer {
+        let mut vz = Visualizer {
             glfw : glfw,
             win : window,
             events: events,
@@ -147,6 +149,8 @@ impl Visualizer {
             data_len : 0,
             stride : 8,
             zoom : 1.0,
+            offset : (0,0),
+            size : size,
         };
         vz.set_size(size);
         vz
@@ -189,17 +193,31 @@ impl Visualizer {
             gl::Uniform2ui(self.uniform_loc("selection"),start,finish);
         }
     }
+
     
     pub fn set_zoom(&mut self, zoom : f32) {
+        fn find_new_off(off : u32, dim : u32, oldzoom : f32, newzoom : f32) -> u32 {
+            let center = off as f32 + (dim as f32 / (2.0 * oldzoom));
+            let newoff = center - (dim as f32 / (2.0 * newzoom));
+            if newoff < 0.0 { 0 } else { newoff as u32 }
+        }
+                
+        self.offset = (find_new_off(self.offset.0, self.size.0, self.zoom, zoom),
+                       find_new_off(self.offset.1, self.size.1, self.zoom, zoom));
+        unsafe {
+            gl::Uniform4ui(self.uniform_loc("win"),
+                           self.offset.0,self.offset.1,self.size.0,self.size.1);
+        }
         self.zoom = zoom;
         unsafe {
             gl::Uniform1f(self.uniform_loc("zoom"),1.0/zoom);
         }
     }
 
-    pub fn set_size(&self, size : (u32, u32)) {
+    pub fn set_size(&mut self, size : (u32, u32)) {
+        self.size = size;
         unsafe {
-            gl::Uniform4ui(self.uniform_loc("win"),0,0,size.0,size.1);
+            gl::Uniform4ui(self.uniform_loc("win"),self.offset.0,self.offset.1,size.0,size.1);
         }
     }
 
