@@ -77,7 +77,7 @@ impl Visualizer {
             height : th as u32,
             format : glium::texture::ClientFormat::U8,
         };
-        let texture = glium::texture::UnsignedTexture2d::new(&display, teximg).unwrap();
+        let texture = glium::texture::UnsignedTexture2d::with_mipmaps(&display, teximg, glium::texture::MipmapsOption::NoMipmap).unwrap();
 
         let mut vz = Visualizer {
             events : events_loop,
@@ -117,7 +117,7 @@ impl Visualizer {
             colstride : self.stride*512,
             datalen : self.data_len as u32,
             selection : self.selection,
-            texwidth : 16384,
+            texwidth : 16384 as u32,
             romtex : &self.texture,
         };
             
