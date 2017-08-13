@@ -43,7 +43,7 @@ pub struct Visualizer {
     stride : u32,
     size : (u32, u32),
     selection : (u32, u32),
-    texture : glium::texture::Texture2d,
+    texture : glium::texture::UnsignedTexture2d,
     pub closed : bool,
 }
 
@@ -72,12 +72,12 @@ impl Visualizer {
         d.reserve(tw*th);
         d.extend(dat.iter().cloned());
         let teximg = glium::texture::RawImage2d {
-            data : std::borrow::Cow::from(d),
+            data : std::borrow::Cow::Borrowed(d.as_slice()),
             width : tw as u32,
             height : th as u32,
             format : glium::texture::ClientFormat::U8,
         };
-        let texture = glium::texture::Texture2d::new(&display, teximg).unwrap();
+        let texture = glium::texture::UnsignedTexture2d::new(&display, teximg).unwrap();
 
         let mut vz = Visualizer {
             events : events_loop,
@@ -109,7 +109,6 @@ impl Visualizer {
     }
 
     pub fn render(&mut self) {
-        let tex = &(self.texture);
         let mut target = self.display.draw();
         target.clear_color(1.0,0.0,0.0,1.0);
         let uniforms = uniform! {
@@ -119,7 +118,7 @@ impl Visualizer {
             datalen : self.data_len as u32,
             selection : self.selection,
             texwidth : 16384,
-            romtex : tex,
+            romtex : &self.texture,
         };
             
         target.draw(&self.positions, &self.indices, &self.program,
