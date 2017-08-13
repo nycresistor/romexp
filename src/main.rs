@@ -1,7 +1,7 @@
 extern crate clap;
 extern crate memmap;
-extern crate glfw;
-extern crate gl;
+#[macro_use]
+extern crate glium;
 
 use clap::{Arg,App};
 
@@ -30,15 +30,11 @@ fn main() {
     };
     
     println!("Opened {}; size {} bytes",rom_path,rom.len());
-
-    let mut viz = viz::Visualizer::new((512, 512));
-    unsafe { viz.set_data(rom.as_slice()); }
+    let mut viz = viz::Visualizer::new((512, 512), unsafe { rom.as_slice() });
     viz.set_stride(8);
     viz.set_selection(800,1600);
-    viz.set_zoom(1.0);
-    while !viz.win.should_close() {
+    while !viz.closed {
         viz.render();
-        viz.glfw.poll_events();
         viz.handle_events();
     }
 

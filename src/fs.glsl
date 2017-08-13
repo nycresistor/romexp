@@ -1,12 +1,11 @@
 #version 130
 
-out vec4 out_color;
+out vec4 color;
 
 uniform uvec4 win;
 uniform uint bitstride;
 uniform uint colstride;
 uniform uint datalen;
-uniform float zoom;
 
 uniform uvec2 selection;
 uniform uint texwidth;
@@ -17,7 +16,7 @@ void main() {
      // corrected position in window
      vec2 fc = vec2( gl_FragCoord[0] - 0.5, float(win[3] - 1u) - (gl_FragCoord[1] - 0.5) );
      // absolute coordinates in bitmap
-     uvec2 ac = uvec2( win.x + uint(fc.x * zoom), win.y + uint(fc.y * zoom) );
+     uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
      uint col = ac.x / bitstride;
      uint row = ac.y;
      
@@ -27,7 +26,7 @@ void main() {
      uint tex_bit_off = bitidx % 8u;
 
      if (tex_off >= datalen) {
-     	out_color = vec4(0.0,0.0,0.4,1.0);
+     	color = vec4(0.0,0.0,0.4,1.0);
      	return;
 	}	
     uint tex_off_x = tex_off % texwidth;
@@ -37,5 +36,5 @@ void main() {
     if (bitidx >= selection[0] && bitidx < selection[1]) {
         c.b = 0.0; c.g = 0.0;
     }
-     out_color = c; 
+     color = c; 
 }
