@@ -5,6 +5,8 @@ use glium::{glutin, Surface};
 use std;
 use std::str;
 
+use glium::glutin::KeyboardInput;
+
 #[derive(Copy, Clone)]
 struct Vertex {
     position: [f32; 2],
@@ -42,6 +44,7 @@ pub struct Visualizer {
     size : (u32, u32),
     selection : (u32, u32),
     texture : glium::texture::UnsignedTexture2d,
+    zoom : f32,
     pub closed : bool,
 }
 
@@ -88,6 +91,7 @@ impl Visualizer {
             selection : (0,0),
             texture : texture,
             size : size,
+            zoom : 1.0,
             closed: false,
         };
         vz.set_size(size);
@@ -117,6 +121,7 @@ impl Visualizer {
             selection : self.selection,
             texwidth : 16384 as u32,
             romtex : &self.texture,
+            zoom : self.zoom,
         };
             
         target.draw(&self.positions, &self.indices, &self.program,
@@ -124,6 +129,29 @@ impl Visualizer {
         target.finish().unwrap();
     }
 
+    fn zoom_in(&mut self) {
+        self.zoom = if self.zoom >= 1.0 { self.zoom + 1.0 } else { 1.0 };
+    }
+
+    fn zoom_out(&mut self) {
+        self.zoom = if self.zoom > 1.0 { self.zoom - 1.0 } else { self.zoom / 2.0 };
+    }
+    
+    // Handle keyboard input
+    fn handle_kb(&mut self, input : KeyboardInput) {
+        match input {
+            KeyboardInput { scancode:_, state:glutin::ElementState::Pressed,
+                            virtual_keycode:Some(vkeycode),modifiers:_ } =>
+                match vkeycode {
+                    glutin::VirtualKeyCode::Escape => self.closed = true,
+                    glutin::VirtualKeyCode::Right => self.zoom_in(),
+                    glutin::VirtualKeyCode::Left => self.zoom_out(),
+                    _ => (),
+                },
+            _ => (),
+        }
+    }
+        
     pub fn handle_events(&mut self) {
         let mut evec : Vec<glium::glutin::Event> = Vec::new();
         self.events.poll_events(|event| { evec.push(event); });
@@ -131,6 +159,7 @@ impl Visualizer {
             match event {
                 glutin::Event::WindowEvent { event, .. } => match event {
                     glutin::WindowEvent::Closed => self.closed = true,
+                    glutin::WindowEvent::KeyboardInput {input , ..} => self.handle_kb(input),
                     _ => ()
                 },
                 _ => (),
