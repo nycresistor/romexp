@@ -3,24 +3,22 @@ extern crate glium;
 use glium::{glutin, Surface};
 
 use std;
-use std::mem;
-use std::ptr;
 use std::str;
-use std::ffi::CString;
 
 #[derive(Copy, Clone)]
 struct Vertex {
     position: [f32; 2],
+    tex_coords: [f32; 2],
 }
 
-implement_vertex!(Vertex, position);
+implement_vertex!(Vertex, position, tex_coords);
 
 // Two triangles to cover the window
 const VERTICES : [Vertex; 4] = [
-    Vertex{ position : [-1.0,1.0] },
-    Vertex{ position : [1.0,1.0] },
-    Vertex{ position : [1.0,-1.0] },
-    Vertex{ position : [-1.0,-1.0] },
+    Vertex{ position : [-1.0,1.0], tex_coords : [0.0,1.0] },
+    Vertex{ position : [1.0,1.0], tex_coords : [1.0,1.0] },
+    Vertex{ position : [1.0,-1.0], tex_coords : [1.0,0.0] },
+    Vertex{ position : [-1.0,-1.0], tex_coords : [0.0,0.0] },
 ];
 
 const INDICES : [u16; 6] = [
