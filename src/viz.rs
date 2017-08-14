@@ -58,10 +58,11 @@ pub struct Visualizer {
     imgui : ImGui,
     renderer : Renderer,
     mouse_state : MouseState,
+    rom_name : String,
 }
 
 impl Visualizer {
-    pub fn new(size : (u32, u32), events_loop : &mut glutin::EventsLoop, dat : &[u8]) -> Visualizer {
+    pub fn new(size : (u32, u32), events_loop : &mut glutin::EventsLoop, dat : &[u8], name : &str) -> Visualizer {
         // Create glium display and program for bit visualizer.
         let window = glutin::WindowBuilder::new()
             .with_title("ROM Explorer")
@@ -112,6 +113,7 @@ impl Visualizer {
             imgui : imgui,
             renderer : renderer,
             mouse_state : MouseState::default(),
+            rom_name : String::from(name.clone()),
         };
         vz.set_size(size);
         vz
@@ -177,10 +179,12 @@ impl super::Vizwin for Visualizer {
         let size_pixels = gl_window.get_inner_size_pixels().unwrap();
 
         let ui = self.imgui.frame(size_points, size_pixels, 0.01);
-        ui.window(im_str!("Hello world"))
+        let title = im_str!("{}",self.rom_name);
+        let size_str = im_str!("Size is {}",self.data_len);
+        ui.window(&title)
             .size((300.0, 100.0), imgui::ImGuiSetCond_FirstUseEver)
             .build(|| {
-                ui.text(im_str!("Hello world!"));
+                ui.text(size_str);
                 ui.text(im_str!("This...is...imgui-rs!"));
                 ui.separator();
                 let mouse_pos = ui.imgui().mouse_pos();
