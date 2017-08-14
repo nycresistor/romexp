@@ -14,7 +14,7 @@ use std::str;
 
 mod viz;
 
-        
+use glium::glutin;
 
 fn main() {
     let matches = App::new("ROM image explorer")
@@ -31,14 +31,16 @@ fn main() {
         Ok(r) => r,
         Err(e) => { println!("Could not open {}: {}",rom_path,e); return; },
     };
-    
+
+    let mut events_loop = glutin::EventsLoop::new();
+
     println!("Opened {}; size {} bytes",rom_path,rom.len());
-    let mut viz = viz::Visualizer::new((512, 512), unsafe { rom.as_slice() });
+    let mut viz = viz::Visualizer::new((512, 512), &mut events_loop, unsafe { rom.as_slice() });
     viz.set_stride(8);
     viz.set_selection(800,1600);
     while !viz.closed {
         viz.render();
-        viz.handle_events();
+        viz.handle_events(&mut events_loop);
     }
 
 }

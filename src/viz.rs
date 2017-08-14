@@ -44,7 +44,6 @@ static VS_SRC: &'static str = include_str!("vs.glsl");
 static FS_SRC: &'static str = include_str!("fs.glsl");
 
 pub struct Visualizer {
-    pub events : glutin::EventsLoop,
     display : glium::Display,
     program : glium::Program,
     positions : glium::VertexBuffer<Vertex>,
@@ -62,13 +61,12 @@ pub struct Visualizer {
 }
 
 impl Visualizer {
-    pub fn new(size : (u32, u32), dat : &[u8]) -> Visualizer {
-        let mut events_loop = glutin::EventsLoop::new();
+    pub fn new(size : (u32, u32), events_loop : &mut glutin::EventsLoop, dat : &[u8]) -> Visualizer {
         let window = glutin::WindowBuilder::new()
             .with_title("ROM Explorer")
             .with_dimensions(size.0, size.1);
         let context = glutin::ContextBuilder::new();
-        let display = glium::Display::new(window, context, &events_loop)
+        let display = glium::Display::new(window, context, events_loop)
             .expect("Failed to create Glium window.");
 
         let program = glium::Program::from_source(&display, VS_SRC, FS_SRC, None)
@@ -97,7 +95,6 @@ impl Visualizer {
         let mut renderer = Renderer::init(&mut imgui, &display).expect("Failed to initialize ImGui renderer");
 
         let mut vz = Visualizer {
-            events : events_loop,
             display : display,
             program : program,
             positions : positions,
@@ -192,9 +189,9 @@ impl Visualizer {
         }
     }
         
-    pub fn handle_events(&mut self) {
+    pub fn handle_events(&mut self, events : &mut glutin::EventsLoop) {
         let mut evec : Vec<glium::glutin::Event> = Vec::new();
-        self.events.poll_events(|event| { evec.push(event); });
+        events.poll_events(|event| { evec.push(event); });
         use glium::glutin::WindowEvent::*;
         use glium::glutin::ElementState::Pressed;
         use glium::glutin::{Event, MouseButton, MouseScrollDelta, TouchPhase};
