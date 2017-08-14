@@ -1,7 +1,9 @@
 extern crate glium;
 
 use glium::{glutin, Surface};
-
+use imgui;
+use imgui::{ImGui, Ui};
+use imgui_glium_renderer::Renderer;
 use std;
 use std::str;
 
@@ -46,6 +48,8 @@ pub struct Visualizer {
     texture : glium::texture::UnsignedTexture2d,
     zoom : f32,
     pub closed : bool,
+    imgui : ImGui,
+    renderer : Renderer,
 }
 
 impl Visualizer {
@@ -80,6 +84,9 @@ impl Visualizer {
         };
         let texture = glium::texture::UnsignedTexture2d::with_mipmaps(&display, teximg, glium::texture::MipmapsOption::NoMipmap).unwrap();
 
+        let mut imgui = ImGui::init();
+        let mut renderer = Renderer::init(&mut imgui, &display).expect("Failed to initialize ImGui renderer");
+
         let mut vz = Visualizer {
             events : events_loop,
             display : display,
@@ -92,7 +99,9 @@ impl Visualizer {
             texture : texture,
             size : size,
             zoom : 1.0,
-            closed: false,
+            closed : false,
+            imgui : imgui,
+            renderer : renderer,
         };
         vz.set_size(size);
         vz
@@ -126,6 +135,27 @@ impl Visualizer {
             
         target.draw(&self.positions, &self.indices, &self.program,
                     &uniforms, &Default::default()).unwrap();
+
+        let gl_window = self.display.gl_window();
+        let size_points = gl_window.get_inner_size_points().unwrap();
+        let size_pixels = gl_window.get_inner_size_pixels().unwrap();
+
+        let ui = self.imgui.frame(size_points, size_pixels, 0.01);
+        ui.window(im_str!("Hello world"))
+            .size((300.0, 100.0), imgui::ImGuiSetCond_FirstUseEver)
+            .build(|| {
+                ui.text(im_str!("Hello world!"));
+                ui.text(im_str!("This...is...imgui-rs!"));
+                ui.separator();
+                let mouse_pos = ui.imgui().mouse_pos();
+                ui.text(im_str!(
+                    "Mouse Position: ({:.1},{:.1})",
+                    mouse_pos.0,
+                    mouse_pos.1
+                ));
+            });
+        self.renderer.render(&mut target, ui).expect("ImGui rendering failed");
+        
         target.finish().unwrap();
     }
 

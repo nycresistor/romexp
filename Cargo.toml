@@ -7,4 +7,5 @@ authors = ["Adam Mayer <phooky@gmail.com>"]
 clap = "2.26.0"
 memmap = "0.5.2"
 glium = "0.17.0"
-
+imgui = "0.0.15"
+imgui-glium-renderer = "0.0.15"
