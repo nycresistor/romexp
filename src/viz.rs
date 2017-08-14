@@ -8,6 +8,14 @@ use std;
 use std::str;
 
 use glium::glutin::KeyboardInput;
+use std::time::Instant;
+
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
+struct MouseState {
+    pos: (i32, i32),
+    pressed: (bool, bool, bool),
+    wheel: f32,
+}
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -50,6 +58,7 @@ pub struct Visualizer {
     pub closed : bool,
     imgui : ImGui,
     renderer : Renderer,
+    mouse_state : MouseState,
 }
 
 impl Visualizer {
@@ -102,6 +111,7 @@ impl Visualizer {
             closed : false,
             imgui : imgui,
             renderer : renderer,
+            mouse_state : MouseState::default(),
         };
         vz.set_size(size);
         vz
@@ -185,15 +195,53 @@ impl Visualizer {
     pub fn handle_events(&mut self) {
         let mut evec : Vec<glium::glutin::Event> = Vec::new();
         self.events.poll_events(|event| { evec.push(event); });
+        use glium::glutin::WindowEvent::*;
+        use glium::glutin::ElementState::Pressed;
+        use glium::glutin::{Event, MouseButton, MouseScrollDelta, TouchPhase};
         for event in evec {
             match event {
-                glutin::Event::WindowEvent { event, .. } => match event {
-                    glutin::WindowEvent::Closed => self.closed = true,
-                    glutin::WindowEvent::KeyboardInput {input , ..} => self.handle_kb(input),
+                Event::WindowEvent { event, .. } => match event {
+                    Closed => self.closed = true,
+                    KeyboardInput {input , ..} => self.handle_kb(input),
+                    MouseMoved { position: (x, y), .. } => self.mouse_state.pos = (x as i32, y as i32),
+                    MouseInput { state, button, .. } => {
+                        match button {
+                            MouseButton::Left => self.mouse_state.pressed.0 = state == Pressed,
+                            MouseButton::Right => self.mouse_state.pressed.1 = state == Pressed,
+                            MouseButton::Middle => self.mouse_state.pressed.2 = state == Pressed,
+                            _ => {}
+                        }
+                    },
+                    MouseWheel {
+                        delta: MouseScrollDelta::LineDelta(_, y),
+                        phase: TouchPhase::Moved,
+                        ..
+                    } |
+                    MouseWheel {
+                        delta: MouseScrollDelta::PixelDelta(_, y),
+                        phase: TouchPhase::Moved,
+                        ..
+                    } => self.mouse_state.wheel = y,                
                     _ => ()
                 },
                 _ => (),
             }
         };
+        let scale = self.imgui.display_framebuffer_scale();
+        self.imgui.set_mouse_pos(
+            self.mouse_state.pos.0 as f32 / scale.0,
+            self.mouse_state.pos.1 as f32 / scale.1,
+        );
+        self.imgui.set_mouse_down(
+            &[
+                self.mouse_state.pressed.0,
+                self.mouse_state.pressed.1,
+                self.mouse_state.pressed.2,
+                false,
+                false,
+            ],
+        );
+        self.imgui.set_mouse_wheel(self.mouse_state.wheel / scale.1);
+        self.mouse_state.wheel = 0.0;    
     }
 }
