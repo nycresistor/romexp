@@ -62,6 +62,7 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new(size : (u32, u32), events_loop : &mut glutin::EventsLoop, dat : &[u8]) -> Visualizer {
+        // Create glium display and program for bit visualizer.
         let window = glutin::WindowBuilder::new()
             .with_title("ROM Explorer")
             .with_dimensions(size.0, size.1);
@@ -71,12 +72,13 @@ impl Visualizer {
 
         let program = glium::Program::from_source(&display, VS_SRC, FS_SRC, None)
             .expect("Failed to create shader program");
-
+        // Set up simple square from -.5,-.5 to .5,.5 for bit display.
         let positions = glium::VertexBuffer::new(&display, &VERTICES).unwrap();
         let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList,
                                               &INDICES).unwrap();
-        
-
+        // Convert binary blob to texture for shader consumption.
+        // To allow blobs larger than 16K, we use a 2D texture instead of
+        // the more obvious 1D. (This gives us a theoretical quarter-gig.)
         let maxw : usize = 16384;
         let tw : usize = maxw;
         let th : usize = (dat.len() + (maxw-1))/maxw;
@@ -91,8 +93,9 @@ impl Visualizer {
         };
         let texture = glium::texture::UnsignedTexture2d::with_mipmaps(&display, teximg, glium::texture::MipmapsOption::NoMipmap).unwrap();
 
+        // Set up and initialize an ImGui renderer for informational display.
         let mut imgui = ImGui::init();
-        let mut renderer = Renderer::init(&mut imgui, &display).expect("Failed to initialize ImGui renderer");
+        let renderer = Renderer::init(&mut imgui, &display).expect("Failed to initialize ImGui renderer");
 
         let mut vz = Visualizer {
             display : display,
@@ -126,7 +129,33 @@ impl Visualizer {
         self.stride = stride;
     }
 
-    pub fn render(&mut self) {
+
+    fn zoom_in(&mut self) {
+        self.zoom = if self.zoom >= 1.0 { self.zoom + 1.0 } else { 1.0 };
+    }
+
+    fn zoom_out(&mut self) {
+        self.zoom = if self.zoom > 1.0 { self.zoom - 1.0 } else { self.zoom / 2.0 };
+    }
+    
+    // Handle keyboard input
+    fn handle_kb(&mut self, input : KeyboardInput) {
+        match input {
+            KeyboardInput { scancode:_, state:glutin::ElementState::Pressed,
+                            virtual_keycode:Some(vkeycode),modifiers:_ } =>
+                match vkeycode {
+                    glutin::VirtualKeyCode::Escape => self.closed = true,
+                    glutin::VirtualKeyCode::Right => self.zoom_in(),
+                    glutin::VirtualKeyCode::Left => self.zoom_out(),
+                    _ => (),
+                },
+            _ => (),
+        }
+    }
+}
+
+impl super::Vizwin for Visualizer {
+    fn render(&mut self) {
         let mut target = self.display.draw();
         target.clear_color(1.0,0.0,0.0,1.0);
         let uniforms = uniform! {
@@ -165,31 +194,8 @@ impl Visualizer {
         
         target.finish().unwrap();
     }
-
-    fn zoom_in(&mut self) {
-        self.zoom = if self.zoom >= 1.0 { self.zoom + 1.0 } else { 1.0 };
-    }
-
-    fn zoom_out(&mut self) {
-        self.zoom = if self.zoom > 1.0 { self.zoom - 1.0 } else { self.zoom / 2.0 };
-    }
     
-    // Handle keyboard input
-    fn handle_kb(&mut self, input : KeyboardInput) {
-        match input {
-            KeyboardInput { scancode:_, state:glutin::ElementState::Pressed,
-                            virtual_keycode:Some(vkeycode),modifiers:_ } =>
-                match vkeycode {
-                    glutin::VirtualKeyCode::Escape => self.closed = true,
-                    glutin::VirtualKeyCode::Right => self.zoom_in(),
-                    glutin::VirtualKeyCode::Left => self.zoom_out(),
-                    _ => (),
-                },
-            _ => (),
-        }
-    }
-        
-    pub fn handle_events(&mut self, events : &mut glutin::EventsLoop) {
+    fn handle_events(&mut self, events : &mut glutin::EventsLoop) {
         let mut evec : Vec<glium::glutin::Event> = Vec::new();
         events.poll_events(|event| { evec.push(event); });
         use glium::glutin::WindowEvent::*;

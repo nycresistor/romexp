@@ -16,6 +16,12 @@ mod viz;
 
 use glium::glutin;
 
+trait Vizwin {
+    fn render(&mut self);
+    fn handle_events(&mut self, events : &mut glutin::EventsLoop);
+}
+
+
 fn main() {
     let matches = App::new("ROM image explorer")
         .version("0.1")
