@@ -14,10 +14,8 @@ uniform uint texwidth;
 uniform usampler2D romtex;
 
 void main() {
-     // corrected position in window
-//     vec2 fc = vec2( gl_FragCoord[0] - 0.5, float(win[3] - 1u) - (gl_FragCoord[1] - 0.5) );
-       vec2 fc = vec2( v_tex_coords[0] * float(win[2] - 1u),
-              (1.0 - v_tex_coords[1]) * float(win[3] - 1u));
+     vec2 fc = vec2( v_tex_coords[0] * float(win[2] - 1u),
+                     (1.0 - v_tex_coords[1]) * float(win[3] - 1u));
      // absolute coordinates in bitmap
      uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
      uint col = ac.x / bitstride;
