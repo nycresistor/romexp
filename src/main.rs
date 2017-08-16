@@ -9,6 +9,7 @@ use memmap::{Mmap, Protection};
 
 use std::str;
 
+mod annotation;
 mod viz;
 
         
