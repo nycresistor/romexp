@@ -7,4 +7,4 @@ authors = ["Adam Mayer <phooky@gmail.com>"]
 clap = "2.26.0"
 memmap = "0.5.2"
 glium = "0.17.0"
-
+glium_text = "0.11.0"

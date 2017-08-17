@@ -6,7 +6,7 @@ pub trait Annotation {
 
 pub trait AnnotationEngine {
     fn new() -> Self;
-    fn build_annotations(&self, raw_data : &u8) -> Vec<Box<Annotation>>;
+    fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>>;
 }
 
 struct AsciiStringAnnotation {
@@ -23,14 +23,61 @@ impl Annotation for AsciiStringAnnotation {
 
 struct AsciiStringAnnotationEngine { }
 
+static ASCII_LOOKUP : [bool;128] = [
+    false, false, false, false,    false, false, false, false,
+    false, true,  true,  false,    false, true,  false, false,
+    false, false, false, false,    false, false, false, false,
+    false, false, false, false,    false, false, false, false,
+
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  true,
+
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  true,
+
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  true,
+    true,  true,  true,  true,     true,  true,  true,  false, ];
+
+    
 impl AnnotationEngine for AsciiStringAnnotationEngine {
     fn new() -> Self {
         AsciiStringAnnotationEngine {}
     }
 
-    fn build_annotations(&self, raw_data : &u8) -> Vec<Box<Annotation>> {
-        let mut annotations = Vec::new();
-        
+    fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>> {
+        let mut annotations : Vec<Box<Annotation>> = Vec::new();
+        // Iterate through and find null-terminated sequences of ascii
+        // characters longer than 4 chars
+        let min_str_len = 4;
+
+        let mut start : Option<usize> = None;
+        let mut idx = 0;
+        while idx < raw_data.len() {
+            let c = raw_data[idx];
+            if c == 0 {
+                match start {
+                    None => (),
+                    Some(w) if idx-w > min_str_len => {
+                        let v : Vec<u8> = raw_data[w..idx+1].to_vec();
+                        let a = AsciiStringAnnotation
+                        { start : w,
+                          end : idx+1,
+                          contents : String::from_utf8(v).unwrap() };
+                        annotations.push(Box::new(a));
+                    },
+                    _ => { start = None; }
+                }
+            } else if (c > 128) || !ASCII_LOOKUP[c as usize] {
+                start = None;
+            }
+            idx = idx + 1;
+        }
         annotations
     }
 }
