@@ -6,7 +6,7 @@ pub trait Annotation {
 
 pub trait AnnotationEngine {
     fn new() -> Self;
-    fn build_annotations(&self, raw_data : &u8) -> Vec<Box<Annotation>>;
+    fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>>;
 }
 
 struct AsciiStringAnnotation {
@@ -28,13 +28,22 @@ impl AnnotationEngine for AsciiStringAnnotationEngine {
         AsciiStringAnnotationEngine {}
     }
 
-    fn build_annotations(&self, raw_data : &u8) -> Vec<Box<Annotation>> {
+    fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>> {
         let mut annotations = Vec::new();
         
         annotations
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
     
-    
-    
+    #[test]
+    fn ascii_annotation_engine() {
+        static ASCII_TEST: &'static [u8] = include_bytes!("../../sample_binaries/strings-test.bin");
+        let engine = AsciiStringAnnotationEngine::new();
+        let annotations = engine.build_annotations(ASCII_TEST);
+        
+    }
+}
