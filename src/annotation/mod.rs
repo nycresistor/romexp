@@ -73,7 +73,7 @@ impl AnnotationEngine for AsciiStringAnnotationEngine {
                     },
                     _ => { start = None; }
                 }
-            } else if (c > 128) || !ASCII_LOOKUP[c as usize] {
+            } else if (c >= 128) || !ASCII_LOOKUP[c as usize] {
                 start = None;
             }
             idx = idx + 1;
