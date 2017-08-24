@@ -82,6 +82,15 @@ impl AnnotationEngine for AsciiStringAnnotationEngine {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
     
-    
-    
+    #[test]
+    fn ascii_annotation_engine() {
+        static ASCII_TEST: &'static [u8] = include_bytes!("../../sample_binaries/strings-test.bin");
+        let engine = AsciiStringAnnotationEngine::new();
+        let annotations = engine.build_annotations(ASCII_TEST);
+        
+    }
+}
