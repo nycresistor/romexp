@@ -33,6 +33,22 @@ static VS_SRC: &'static str = include_str!("vs.glsl");
 
 static FS_SRC: &'static str = include_str!("fs.glsl");
 
+pub struct MouseState {
+    start_drag_idx : Option<u32>,
+    last_pos : (f64, f64),
+    dragging : bool,
+}
+
+impl MouseState {
+    pub fn new() -> MouseState {
+        MouseState { 
+            start_drag_idx : None, 
+            last_pos : (0.0, 0.0),
+            dragging : false, 
+        }
+    }
+}
+
 pub struct Visualizer {
     pub events : glutin::EventsLoop,
     display : glium::Display,
@@ -46,6 +62,7 @@ pub struct Visualizer {
     texture : glium::texture::UnsignedTexture2d,
     zoom : f32,
     pub closed : bool,
+    mouse_state : MouseState,
 }
 
 impl Visualizer {
@@ -93,6 +110,7 @@ impl Visualizer {
             size : size,
             zoom : 1.0,
             closed: false,
+            mouse_state : MouseState::new(),
         };
         vz.set_size(size);
         vz
@@ -151,6 +169,53 @@ impl Visualizer {
             _ => (),
         }
     }
+
+    fn handle_mouse_move(&mut self, pos : (f64, f64) ) {
+        self.mouse_state.last_pos = pos;
+        if self.mouse_state.dragging {
+            let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
+            let start_idx = self.mouse_state.start_drag_idx.unwrap();
+            let end_idx = drag_end.unwrap();
+            self.set_selection(start_idx, end_idx);
+        }
+    }
+
+
+    fn byte_from_coords(&self, pos : (f64, f64) ) -> Option<u32> {
+        let column = (pos.0/self.zoom as f64) as u32/self.stride;
+        let row = (pos.1/self.zoom as f64) as u32;
+        Some(8*(column * 512 + row))
+    }
+
+    fn handle_mouse_button(&mut self, state : glutin::ElementState, button : glutin::MouseButton ) {
+        use self::glutin::MouseButton::*;
+        use self::glutin::ElementState::*;
+
+        match button {
+            Left => match state {
+                Pressed => {
+                    println!("Mouse down at {}, {} {:x}",self.mouse_state.last_pos.0,
+                        self.mouse_state.last_pos.1,
+                        self.byte_from_coords(self.mouse_state.last_pos).unwrap());
+                    self.mouse_state.start_drag_idx = self.byte_from_coords(self.mouse_state.last_pos);
+                    self.mouse_state.dragging = true;
+                },
+                Released => {
+                    println!("Mouse up at {}, {} {:x}",self.mouse_state.last_pos.0, 
+                        self.mouse_state.last_pos.1,
+                        self.byte_from_coords(self.mouse_state.last_pos).unwrap());
+                    let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
+                    let start_idx = self.mouse_state.start_drag_idx.unwrap();
+                    let end_idx = drag_end.unwrap();
+                    self.set_selection(start_idx, end_idx);
+                    self.mouse_state.start_drag_idx = None;
+                    self.mouse_state.dragging = false;
+                },
+            },
+            _ => {},
+        }
+    }
+
         
     pub fn handle_events(&mut self) {
         let mut evec : Vec<glium::glutin::Event> = Vec::new();
@@ -160,6 +225,8 @@ impl Visualizer {
                 glutin::Event::WindowEvent { event, .. } => match event {
                     glutin::WindowEvent::Closed => self.closed = true,
                     glutin::WindowEvent::KeyboardInput {input , ..} => self.handle_kb(input),
+                    glutin::WindowEvent::MouseMoved {position, .. } => self.handle_mouse_move(position),
+                    glutin::WindowEvent::MouseInput {state, button, .. } => self.handle_mouse_button(state,button),
                     _ => ()
                 },
                 _ => (),
