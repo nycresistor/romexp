@@ -9,19 +9,19 @@ pub trait AnnotationEngine {
     fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>>;
 }
 
-struct AsciiStringAnnotation {
+struct CStringAnnotation {
     start : usize,
     end : usize,
     contents : String,
 }
 
-impl Annotation for AsciiStringAnnotation {
+impl Annotation for CStringAnnotation {
     fn span(&self) -> (usize, usize) { (self.start, self.end) }
     fn comments(&self) -> &str { self.contents.as_str() }
     fn type_str(&self) -> &str { "ASCII String" }
 }
 
-struct AsciiStringAnnotationEngine { }
+struct CStringAnnotationEngine { }
 
 static ASCII_LOOKUP : [bool;128] = [
     false, false, false, false,    false, false, false, false,
@@ -45,9 +45,9 @@ static ASCII_LOOKUP : [bool;128] = [
     true,  true,  true,  true,     true,  true,  true,  false, ];
 
     
-impl AnnotationEngine for AsciiStringAnnotationEngine {
+impl AnnotationEngine for CStringAnnotationEngine {
     fn new() -> Self {
-        AsciiStringAnnotationEngine {}
+        CStringAnnotationEngine {}
     }
 
     fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>> {
@@ -61,11 +61,12 @@ impl AnnotationEngine for AsciiStringAnnotationEngine {
         while idx < raw_data.len() {
             let c = raw_data[idx];
             if c == 0 {
+                println!("got null");
                 match start {
                     None => (),
                     Some(w) if idx-w > min_str_len => {
                         let v : Vec<u8> = raw_data[w..idx+1].to_vec();
-                        let a = AsciiStringAnnotation
+                        let a = CStringAnnotation
                         { start : w,
                           end : idx+1,
                           contents : String::from_utf8(v).unwrap() };
@@ -75,6 +76,8 @@ impl AnnotationEngine for AsciiStringAnnotationEngine {
                 }
             } else if (c >= 128) || !ASCII_LOOKUP[c as usize] {
                 start = None;
+            } else if start == None {
+                start = Some(idx);
             }
             idx = idx + 1;
         }
@@ -89,8 +92,9 @@ mod tests {
     #[test]
     fn ascii_annotation_engine() {
         static ASCII_TEST: &'static [u8] = include_bytes!("../../sample_binaries/strings-test.bin");
-        let engine = AsciiStringAnnotationEngine::new();
+        let engine = CStringAnnotationEngine::new();
         let annotations = engine.build_annotations(ASCII_TEST);
+        assert_eq!(3,annotations.len());
         
     }
 }
