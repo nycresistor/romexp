@@ -56,8 +56,13 @@ pub struct Visualizer {
     positions : glium::VertexBuffer<Vertex>,
     indices : glium::IndexBuffer<u16>,
     data_len : usize,
+    /// width, in bits, of each column
     stride : u32,
+    /// height, in rows, of each colum
+    col_height : u32,
+    /// width and height of window, in px
     size : (u32, u32),
+    /// start and end of current selection, as byte idx
     selection : (u32, u32),
     texture : glium::texture::UnsignedTexture2d,
     zoom : f32,
@@ -105,6 +110,7 @@ impl Visualizer {
             indices : indices,
             data_len : dat.len(),
             stride : 8,
+            col_height : 512,
             selection : (0,0),
             texture : texture,
             size : size,
@@ -134,7 +140,7 @@ impl Visualizer {
         let uniforms = uniform! {
             win : [ 0, 0, self.size.0, self.size.1 ],
             bitstride : self.stride,
-            colstride : self.stride*512,
+            colstride : self.stride*self.col_height,
             datalen : self.data_len as u32,
             selection : self.selection,
             texwidth : 16384 as u32,
