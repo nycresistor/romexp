@@ -98,7 +98,6 @@ impl Visualizer {
         d.reserve(tw*th);
         d.extend(dat.iter().cloned());
         d.resize(tw*th,0);
-        println!("d sized at: {} x {}, total size {}",tw,th,d.len());
         let teximg = glium::texture::RawImage2d {
             data : std::borrow::Cow::Borrowed(d.as_slice()),
             width : tw as u32,
@@ -222,15 +221,9 @@ impl Visualizer {
         match button {
             Left => match state {
                 Pressed => {
-                    println!("Mouse down at {}, {} {:x}",self.mouse_state.last_pos.0,
-                        self.mouse_state.last_pos.1,
-                        self.byte_from_coords(self.mouse_state.last_pos).unwrap());
                     self.mouse_state.start_drag_idx = self.byte_from_coords(self.mouse_state.last_pos);
                 },
                 Released => {
-                    println!("Mouse up at {}, {} {:x}",self.mouse_state.last_pos.0, 
-                             self.mouse_state.last_pos.1,
-                             self.byte_from_coords(self.mouse_state.last_pos).unwrap());
                     let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
                     let start_idx = self.mouse_state.start_drag_idx.unwrap();
                     let end_idx = drag_end.unwrap();
