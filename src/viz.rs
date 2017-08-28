@@ -97,6 +97,8 @@ impl Visualizer {
         let mut d : Vec<u8> = Vec::new();
         d.reserve(tw*th);
         d.extend(dat.iter().cloned());
+        d.resize(tw*th,0);
+        println!("d sized at: {} x {}, total size {}",tw,th,d.len());
         let teximg = glium::texture::RawImage2d {
             data : std::borrow::Cow::Borrowed(d.as_slice()),
             width : tw as u32,
