@@ -36,7 +36,7 @@ static FS_SRC: &'static str = include_str!("fs.glsl");
 use std::collections::HashSet;
 
 pub struct MouseState {
-    start_drag_idx : Option<u32>,
+    start_drag_pos : Option<(f64,f64)>,
     last_pos : (f64, f64),
     down : HashSet<glutin::MouseButton>,
 }
@@ -44,7 +44,7 @@ pub struct MouseState {
 impl MouseState {
     pub fn new() -> MouseState {
         MouseState { 
-            start_drag_idx : None, 
+            start_drag_pos : None, 
             last_pos : (0.0, 0.0),
             down : HashSet::new(),
         }
@@ -179,6 +179,16 @@ impl Visualizer {
         let z = if self.zoom > 1.0 { self.zoom - 0.1 } else { 1.0 };
         self.zoom_to(z);
     }
+
+    fn handle_mouse_scroll(&mut self, d : glutin::MouseScrollDelta) {
+        match d {
+            glutin::MouseScrollDelta::LineDelta(h,v) => {
+                let z = self.zoom - 0.1 * v;
+                self.zoom_to(if z >= 1.0 { z } else { 1.0 } );
+            },
+            _ => {}
+        }
+    }
     
     // Handle keyboard input
     fn handle_kb(&mut self, input : KeyboardInput) {
@@ -200,7 +210,7 @@ impl Visualizer {
         self.mouse_state.last_pos = pos;
         if self.mouse_state.down.contains(&Left) {
             let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
-            let start_idx = self.mouse_state.start_drag_idx.unwrap();
+            let start_idx = self.byte_from_coords(self.mouse_state.start_drag_pos.unwrap()).unwrap();
             let end_idx = drag_end.unwrap();
             self.set_selection(start_idx * 8, end_idx * 8); // *8 because bit index
         }
@@ -229,26 +239,30 @@ impl Visualizer {
         use self::glutin::MouseButton::*;
         use self::glutin::ElementState::*;
 
-        match state {
-            Pressed => self.mouse_state.down.insert(button),
-            Released => self.mouse_state.down.remove(&button),
-        };
-
         match button {
             Left => match state {
-                Pressed => {
-                    self.mouse_state.start_drag_idx = self.byte_from_coords(self.mouse_state.last_pos);
-                },
                 Released => {
                     let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
-                    let start_idx = self.mouse_state.start_drag_idx.unwrap();
+                    let start_idx = self.byte_from_coords(self.mouse_state.start_drag_pos.unwrap()).unwrap();
                     let end_idx = drag_end.unwrap();
                     self.set_selection(start_idx*8, end_idx*8); // *8 because bit index
-                    self.mouse_state.start_drag_idx = None;
                 },
+                _ => {},
             },
             _ => {},
         }
+        
+        match state {
+            Pressed => {
+                self.mouse_state.down.insert(button);
+                self.mouse_state.start_drag_pos = Some(self.mouse_state.last_pos);
+            },
+            Released => {
+                self.mouse_state.down.remove(&button);
+                self.mouse_state.start_drag_pos = None;
+            },
+        };
+
     }
 
         
@@ -262,6 +276,7 @@ impl Visualizer {
                     glutin::WindowEvent::Resized( w, h ) => self.set_size((w,h)),
                     glutin::WindowEvent::KeyboardInput {input , ..} => self.handle_kb(input),
                     glutin::WindowEvent::MouseMoved {position, .. } => self.handle_mouse_move(position),
+                    glutin::WindowEvent::MouseWheel {delta, .. } =>self.handle_mouse_scroll(delta),
                     glutin::WindowEvent::MouseInput {state, button, .. } => self.handle_mouse_button(state,button),
                     _ => ()
                 },
