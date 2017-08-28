@@ -68,7 +68,7 @@ pub struct Visualizer {
     selection : (u32, u32),
     texture : glium::texture::UnsignedTexture2d,
     zoom : f32,
-    center_point : (f32, f32),
+    ul_offset : (f32, f32),
     pub closed : bool,
     mouse_state : MouseState,
 }
@@ -119,7 +119,7 @@ impl Visualizer {
             texture : texture,
             size : size,
             zoom : 1.0,
-            center_point : (0.0, 0.0),
+            ul_offset : (0.0, 0.0),
             closed: false,
             mouse_state : MouseState::new(),
         };
@@ -150,7 +150,7 @@ impl Visualizer {
             selection : self.selection,
             texwidth : 16384 as u32,
             romtex : &self.texture,
-            center_point : self.center_point,
+            ul_offset : self.ul_offset,
             zoom : self.zoom,
         };
             
@@ -159,12 +159,25 @@ impl Visualizer {
         target.finish().unwrap();
     }
 
+    fn zoom_to(&mut self, z : f32) {
+        fn findul(ul : f32, win : u32, oldz : f32, newz : f32) -> f32 {
+            let half = win as f32 / 2.0;
+            let c = ul + (half / oldz);
+            c - half / newz
+        }
+        self.ul_offset = ( findul(self.ul_offset.0, self.size.0, self.zoom, z),
+                          findul(self.ul_offset.1, self.size.1, self.zoom, z) );
+        self.zoom = z;
+    }
+    
     fn zoom_in(&mut self) {
-        self.zoom = if self.zoom >= 1.0 { self.zoom + 1.0 } else { 1.0 };
+        let z = if self.zoom >= 1.0 { self.zoom + 0.1 } else {   1.0 };
+        self.zoom_to(z);
     }
 
     fn zoom_out(&mut self) {
-        self.zoom = if self.zoom > 1.0 { self.zoom - 1.0 } else { self.zoom / 2.0 };
+        let z = if self.zoom > 1.0 { self.zoom - 0.1 } else { 1.0 };
+        self.zoom_to(z);
     }
     
     // Handle keyboard input
@@ -195,9 +208,12 @@ impl Visualizer {
     
     
     fn byte_from_coords(&self, pos : (f64, f64) ) -> Option<u32> {
+        // find (possibly off-screen) location of 0,0 in data.
         // adjust for zoom
-        let (x, y) = (pos.0/self.zoom as f64, pos.1/self.zoom as f64);
+        let (x, y) = (pos.0/self.zoom as f64 + self.ul_offset.0 as f64,
+                      pos.1/self.zoom as f64 + self.ul_offset.1 as f64);
         // add deltas to upper left corner of image
+        
         if x < 0.0 || y < 0.0
         {
             Some(0)

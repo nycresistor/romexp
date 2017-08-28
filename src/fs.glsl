@@ -13,9 +13,13 @@ uniform uint texwidth;
 
 uniform usampler2D romtex;
 
+uniform float zoom;
+uniform vec2 ul_offset;
+
 void main() {
-     vec2 fc = vec2( v_tex_coords[0] * float(win[2] - 1u),
-                     (1.0 - v_tex_coords[1]) * float(win[3] - 1u));
+     vec2 fc = vec2( v_tex_coords[0] * float(win[2]),
+                     (1.0 - v_tex_coords[1]) * float(win[3]));
+     fc = fc / zoom + ul_offset;
      // absolute coordinates in bitmap
      uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
      uint col = ac.x / bitstride;
