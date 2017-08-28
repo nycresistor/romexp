@@ -194,13 +194,15 @@ impl Visualizer {
     
     
     fn byte_from_coords(&self, pos : (f64, f64) ) -> Option<u32> {
+        // adjust for zoom
         let (x, y) = (pos.0/self.zoom as f64, pos.1/self.zoom as f64);
+        // add deltas to upper left corner of image
         if x < 0.0 || y < 0.0
         {
             Some(0)
         } else {
-            let column = (pos.0/self.zoom as f64) as u32/self.stride;
-            let row = (pos.1/self.zoom as f64) as u32;
+            let column = x as u32/self.stride;
+            let row = y as u32;
             let idx = column * self.col_height + row;
             if idx < self.data_len as u32 { Some(idx) } else { Some(self.data_len as u32) }
         }
@@ -246,6 +248,7 @@ impl Visualizer {
             match event {
                 glutin::Event::WindowEvent { event, .. } => match event {
                     glutin::WindowEvent::Closed => self.closed = true,
+                    glutin::WindowEvent::Resized( w, h ) => self.set_size((w,h)),
                     glutin::WindowEvent::KeyboardInput {input , ..} => self.handle_kb(input),
                     glutin::WindowEvent::MouseMoved {position, .. } => self.handle_mouse_move(position),
                     glutin::WindowEvent::MouseInput {state, button, .. } => self.handle_mouse_button(state,button),

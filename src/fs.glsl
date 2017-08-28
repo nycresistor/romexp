@@ -25,8 +25,8 @@ void main() {
      
      uint tex_off = bitidx / 8u;
      uint tex_bit_off = bitidx % 8u;
-
-     if (tex_off >= datalen) {
+     
+     if (row > (colstride/bitstride) || tex_off >= datalen) {
      	color = vec4(0.0,0.0,0.4,1.0);
      	return;
 	}	
