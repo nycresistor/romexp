@@ -33,10 +33,12 @@ static VS_SRC: &'static str = include_str!("vs.glsl");
 
 static FS_SRC: &'static str = include_str!("fs.glsl");
 
+use std::collections::HashSet;
+
 pub struct MouseState {
     start_drag_idx : Option<u32>,
     last_pos : (f64, f64),
-    dragging : bool,
+    down : HashSet<glutin::MouseButton>,
 }
 
 impl MouseState {
@@ -44,7 +46,7 @@ impl MouseState {
         MouseState { 
             start_drag_idx : None, 
             last_pos : (0.0, 0.0),
-            dragging : false, 
+            down : HashSet::new(),
         }
     }
 }
@@ -66,6 +68,7 @@ pub struct Visualizer {
     selection : (u32, u32),
     texture : glium::texture::UnsignedTexture2d,
     zoom : f32,
+    center_point : (f32, f32),
     pub closed : bool,
     mouse_state : MouseState,
 }
@@ -115,6 +118,7 @@ impl Visualizer {
             texture : texture,
             size : size,
             zoom : 1.0,
+            center_point : (0.0, 0.0),
             closed: false,
             mouse_state : MouseState::new(),
         };
@@ -145,6 +149,7 @@ impl Visualizer {
             selection : self.selection,
             texwidth : 16384 as u32,
             romtex : &self.texture,
+            center_point : self.center_point,
             zoom : self.zoom,
         };
             
@@ -177,16 +182,17 @@ impl Visualizer {
     }
 
     fn handle_mouse_move(&mut self, pos : (f64, f64) ) {
+        use self::glutin::MouseButton::*;
         self.mouse_state.last_pos = pos;
-        if self.mouse_state.dragging {
+        if self.mouse_state.down.contains(&Left) {
             let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
             let start_idx = self.mouse_state.start_drag_idx.unwrap();
             let end_idx = drag_end.unwrap();
             self.set_selection(start_idx, end_idx);
         }
     }
-
-
+    
+    
     fn byte_from_coords(&self, pos : (f64, f64) ) -> Option<u32> {
         let column = (pos.0/self.zoom as f64) as u32/self.stride;
         let row = (pos.1/self.zoom as f64) as u32;
@@ -197,6 +203,11 @@ impl Visualizer {
         use self::glutin::MouseButton::*;
         use self::glutin::ElementState::*;
 
+        match state {
+            Pressed => self.mouse_state.down.insert(button),
+            Released => self.mouse_state.down.remove(&button),
+        };
+
         match button {
             Left => match state {
                 Pressed => {
@@ -204,18 +215,16 @@ impl Visualizer {
                         self.mouse_state.last_pos.1,
                         self.byte_from_coords(self.mouse_state.last_pos).unwrap());
                     self.mouse_state.start_drag_idx = self.byte_from_coords(self.mouse_state.last_pos);
-                    self.mouse_state.dragging = true;
                 },
                 Released => {
                     println!("Mouse up at {}, {} {:x}",self.mouse_state.last_pos.0, 
-                        self.mouse_state.last_pos.1,
-                        self.byte_from_coords(self.mouse_state.last_pos).unwrap());
+                             self.mouse_state.last_pos.1,
+                             self.byte_from_coords(self.mouse_state.last_pos).unwrap());
                     let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
                     let start_idx = self.mouse_state.start_drag_idx.unwrap();
                     let end_idx = drag_end.unwrap();
                     self.set_selection(start_idx, end_idx);
                     self.mouse_state.start_drag_idx = None;
-                    self.mouse_state.dragging = false;
                 },
             },
             _ => {},
