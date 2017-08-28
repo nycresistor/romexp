@@ -188,15 +188,22 @@ impl Visualizer {
             let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
             let start_idx = self.mouse_state.start_drag_idx.unwrap();
             let end_idx = drag_end.unwrap();
-            self.set_selection(start_idx, end_idx);
+            self.set_selection(start_idx * 8, end_idx * 8); // *8 because bit index
         }
     }
     
     
     fn byte_from_coords(&self, pos : (f64, f64) ) -> Option<u32> {
-        let column = (pos.0/self.zoom as f64) as u32/self.stride;
-        let row = (pos.1/self.zoom as f64) as u32;
-        Some(8*(column * 512 + row))
+        let (x, y) = (pos.0/self.zoom as f64, pos.1/self.zoom as f64);
+        if x < 0.0 || y < 0.0
+        {
+            Some(0)
+        } else {
+            let column = (pos.0/self.zoom as f64) as u32/self.stride;
+            let row = (pos.1/self.zoom as f64) as u32;
+            let idx = column * self.col_height + row;
+            if idx < self.data_len as u32 { Some(idx) } else { Some(self.data_len as u32) }
+        }
     }
 
     fn handle_mouse_button(&mut self, state : glutin::ElementState, button : glutin::MouseButton ) {
@@ -223,7 +230,7 @@ impl Visualizer {
                     let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
                     let start_idx = self.mouse_state.start_drag_idx.unwrap();
                     let end_idx = drag_end.unwrap();
-                    self.set_selection(start_idx, end_idx);
+                    self.set_selection(start_idx*8, end_idx*8); // *8 because bit index
                     self.mouse_state.start_drag_idx = None;
                 },
             },
