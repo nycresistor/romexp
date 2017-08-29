@@ -21,6 +21,10 @@ void main() {
                      (1.0 - v_tex_coords[1]) * float(win[3]));
      fc = fc / zoom + ul_offset;
      // absolute coordinates in bitmap
+     if (fc[0] < 0 || fc[1] < 0) {
+     	color = vec4(0.0,0.0,0.4,1.0);
+	return;
+     }
      uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
      uint col = ac.x / bitstride;
      uint row = ac.y;
