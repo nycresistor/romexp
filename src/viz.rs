@@ -54,7 +54,7 @@ impl MouseState {
 }
 
 pub struct Visualizer {
-    pub events : glutin::EventsLoop,
+    events : glutin::EventsLoop,
     display : glium::Display,
     program : glium::Program,
     positions : glium::VertexBuffer<Vertex>,
@@ -69,6 +69,8 @@ pub struct Visualizer {
     /// start and end of current selection, as byte idx
     selection : (u32, u32),
     texture : glium::texture::UnsignedTexture2d,
+    annotation_tex : glium::texture::UnsignedTexture2d,
+    annotation_d : Vec<u8>,
     zoom : f32,
     ul_offset : (f32, f32),
     pub closed : bool,
@@ -106,7 +108,17 @@ impl Visualizer {
             height : th as u32,
             format : glium::texture::ClientFormat::U8,
         };
+        let mut annotation_d : Vec<u8> = Vec::new();
+        annotation_d.resize(tw*th,0);
+        let cloned_annot = annotation_d.clone();
+        let annotation_img = glium::texture::RawImage2d {
+            data : std::borrow::Cow::Borrowed(cloned_annot.as_slice()),
+            width : tw as u32,
+            height : th as u32,
+            format : glium::texture::ClientFormat::U8,
+        };
         let texture = glium::texture::UnsignedTexture2d::with_mipmaps(&display, teximg, glium::texture::MipmapsOption::NoMipmap).unwrap();
+        let annotation_tex = glium::texture::UnsignedTexture2d::with_mipmaps(&display, annotation_img, glium::texture::MipmapsOption::NoMipmap).unwrap();
 
         let mut vz = Visualizer {
             events : events_loop,
@@ -119,6 +131,8 @@ impl Visualizer {
             col_height : 512,
             selection : (0,0),
             texture : texture,
+            annotation_tex : annotation_tex,
+            annotation_d : annotation_d,
             size : size,
             zoom : 1.0,
             ul_offset : (0.0, 0.0),
@@ -152,6 +166,7 @@ impl Visualizer {
             selection : self.selection,
             texwidth : 16384 as u32,
             romtex : &self.texture,
+            annotex : &self.annotation_tex,
             ul_offset : self.ul_offset,
             zoom : self.zoom,
         };
@@ -191,7 +206,23 @@ impl Visualizer {
             _ => {}
         }
     }
-    
+
+    fn update_annotations(&mut self) {
+        let maxw : usize = 16384;
+        let tw : usize = maxw;
+        let th : usize = (self.data_len + (maxw-1))/maxw;
+        let cloned_annot = self.annotation_d.clone();
+        let annotation_img = glium::texture::RawImage2d {
+            data : std::borrow::Cow::Borrowed(cloned_annot.as_slice()),
+            width : tw as u32,
+            height : th as u32,
+            format : glium::texture::ClientFormat::U8,
+        };
+        let annotation_tex = glium::texture::UnsignedTexture2d::with_mipmaps(&self.display, annotation_img, glium::texture::MipmapsOption::NoMipmap).unwrap();
+        self.annotation_tex = annotation_tex;
+    }
+
+        
     // Handle keyboard input
     fn handle_kb(&mut self, input : KeyboardInput) {
         match input {
@@ -201,6 +232,12 @@ impl Visualizer {
                     glutin::VirtualKeyCode::Escape => self.closed = true,
                     glutin::VirtualKeyCode::Right => self.zoom_in(),
                     glutin::VirtualKeyCode::Left => self.zoom_out(),
+                    glutin::VirtualKeyCode::S => {
+                        for n in 10..100 {
+                            self.annotation_d[n]=0x99;
+                        }
+                        self.update_annotations();
+                    },
                     _ => (),
                 },
             _ => (),
