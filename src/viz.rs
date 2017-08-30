@@ -7,6 +7,8 @@ use std::str;
 
 use glium::glutin::KeyboardInput;
 
+use annotation;
+
 #[derive(Copy, Clone)]
 struct Vertex {
     position: [f32; 2],
@@ -53,7 +55,7 @@ impl MouseState {
     }
 }
 
-pub struct Visualizer {
+pub struct Visualizer<'a> {
     events : glutin::EventsLoop,
     display : glium::Display,
     program : glium::Program,
@@ -75,9 +77,10 @@ pub struct Visualizer {
     ul_offset : (f32, f32),
     pub closed : bool,
     mouse_state : MouseState,
+    dat : &'a [u8],
 }
 
-impl Visualizer {
+impl<'a> Visualizer<'a> {
     pub fn new(size : (u32, u32), dat : &[u8]) -> Visualizer {
         let mut events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
@@ -138,6 +141,7 @@ impl Visualizer {
             ul_offset : (0.0, 0.0),
             closed: false,
             mouse_state : MouseState::new(),
+            dat : dat,
         };
         vz.set_size(size);
         vz
@@ -222,7 +226,6 @@ impl Visualizer {
         self.annotation_tex = annotation_tex;
     }
 
-        
     // Handle keyboard input
     fn handle_kb(&mut self, input : KeyboardInput) {
         match input {
@@ -233,8 +236,13 @@ impl Visualizer {
                     glutin::VirtualKeyCode::Right => self.zoom_in(),
                     glutin::VirtualKeyCode::Left => self.zoom_out(),
                     glutin::VirtualKeyCode::S => {
-                        for n in 10..100 {
-                            self.annotation_d[n]=0x99;
+                        use annotation::AnnotationEngine;
+                        let engine = annotation::CStringAnnotationEngine::new();
+                        let annotations = engine.build_annotations(self.dat);
+                        for annotation in annotations {
+                            for n in annotation.span().0 .. annotation.span().1 {
+                                self.annotation_d[n] = 0x66;
+                            }
                         }
                         self.update_annotations();
                     },

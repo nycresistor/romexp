@@ -9,7 +9,7 @@ pub trait AnnotationEngine {
     fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>>;
 }
 
-struct CStringAnnotation {
+pub struct CStringAnnotation {
     start : usize,
     end : usize,
     contents : String,
@@ -21,7 +21,7 @@ impl Annotation for CStringAnnotation {
     fn type_str(&self) -> &str { "ASCII String" }
 }
 
-struct CStringAnnotationEngine { }
+pub struct CStringAnnotationEngine { }
 
 static ASCII_LOOKUP : [bool;128] = [
     false, false, false, false,    false, false, false, false,
@@ -61,7 +61,6 @@ impl AnnotationEngine for CStringAnnotationEngine {
         while idx < raw_data.len() {
             let c = raw_data[idx];
             if c == 0 {
-                println!("got null");
                 match start {
                     None => (),
                     Some(w) if idx-w > min_str_len => {
@@ -69,7 +68,8 @@ impl AnnotationEngine for CStringAnnotationEngine {
                         let a = CStringAnnotation
                         { start : w,
                           end : idx+1,
-                          contents : String::from_utf8(v).unwrap() };
+                         contents : String::from_utf8(v).unwrap() };
+                        start = None;
                         annotations.push(Box::new(a));
                     },
                     _ => { start = None; }
