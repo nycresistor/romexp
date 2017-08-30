@@ -19,7 +19,7 @@ uniform vec2 ul_offset;
 void main() {
      vec2 fc = vec2( v_tex_coords[0] * float(win[2]),
                      (1.0 - v_tex_coords[1]) * float(win[3]));
-     fc = fc / zoom + ul_offset;
+     fc = (fc + ul_offset) / zoom;
      // absolute coordinates in bitmap
      if (fc[0] < 0 || fc[1] < 0) {
      	color = vec4(0.0,0.0,0.4,1.0);

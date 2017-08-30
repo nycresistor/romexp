@@ -39,6 +39,7 @@ pub struct MouseState {
     start_drag_pos : Option<(f64,f64)>,
     last_pos : (f64, f64),
     down : HashSet<glutin::MouseButton>,
+    start_ul_offset : (f32, f32),
 }
 
 impl MouseState {
@@ -47,6 +48,7 @@ impl MouseState {
             start_drag_pos : None, 
             last_pos : (0.0, 0.0),
             down : HashSet::new(),
+            start_ul_offset : (0.0, 0.0),
         }
     }
 }
@@ -213,6 +215,13 @@ impl Visualizer {
             let start_idx = self.byte_from_coords(self.mouse_state.start_drag_pos.unwrap()).unwrap();
             let end_idx = drag_end.unwrap();
             self.set_selection(start_idx * 8, end_idx * 8); // *8 because bit index
+        } else if self.mouse_state.down.contains(&Middle) {
+            let (x1, y1) = self.mouse_state.start_drag_pos.unwrap();
+            let (x2, y2) = self.mouse_state.last_pos;
+            let (dx, dy) = (x2 - x1, y2 - y1);
+            let xoff = self.mouse_state.start_ul_offset.0 - dx as f32;
+            let yoff = self.mouse_state.start_ul_offset.1 - dy as f32;
+            self.ul_offset = (xoff, yoff);
         }
     }
     
@@ -246,6 +255,12 @@ impl Visualizer {
                     let start_idx = self.byte_from_coords(self.mouse_state.start_drag_pos.unwrap()).unwrap();
                     let end_idx = drag_end.unwrap();
                     self.set_selection(start_idx*8, end_idx*8); // *8 because bit index
+                },
+                _ => {},
+            },
+            Middle => match state {
+                Pressed => {
+                    self.mouse_state.start_ul_offset = self.ul_offset;
                 },
                 _ => {},
             },
