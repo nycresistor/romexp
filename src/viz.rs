@@ -1,4 +1,5 @@
 extern crate glium;
+extern crate glium_text_rusttype;
 
 use glium::{glutin, Surface};
 
@@ -78,6 +79,8 @@ pub struct Visualizer<'a> {
     pub closed : bool,
     mouse_state : MouseState,
     dat : &'a [u8],
+    text_system : glium_text_rusttype::TextSystem,
+    font_texture : glium_text_rusttype::FontTexture,
 }
 
 impl<'a> Visualizer<'a> {
@@ -123,6 +126,12 @@ impl<'a> Visualizer<'a> {
         let texture = glium::texture::UnsignedTexture2d::with_mipmaps(&display, teximg, glium::texture::MipmapsOption::NoMipmap).unwrap();
         let annotation_tex = glium::texture::UnsignedTexture2d::with_mipmaps(&display, annotation_img, glium::texture::MipmapsOption::NoMipmap).unwrap();
 
+
+
+        let text_system = glium_text_rusttype::TextSystem::new(&display);
+        let font_size = 48;
+        let font_texture = glium_text_rusttype::FontTexture::new(&display, &include_bytes!("fonts/Px437_ATT_PC6300.ttf")[..], font_size,glium_text_rusttype::FontTexture::ascii_character_list() ).unwrap();
+        
         let mut vz = Visualizer {
             events : events_loop,
             display : display,
@@ -142,6 +151,8 @@ impl<'a> Visualizer<'a> {
             closed: false,
             mouse_state : MouseState::new(),
             dat : dat,
+            text_system : text_system,
+            font_texture : font_texture,
         };
         vz.set_size(size);
         vz
@@ -177,6 +188,12 @@ impl<'a> Visualizer<'a> {
             
         target.draw(&self.positions, &self.indices, &self.program,
                     &uniforms, &Default::default()).unwrap();
+        let text = glium_text_rusttype::TextDisplay::new(&self.text_system, &self.font_texture,"HELLO WORLD");
+        glium_text_rusttype::draw(&text, &self.text_system, &mut target,
+                                  [[0.2,0.0,0.0,0.0],
+                                   [0.0,0.2,0.0,0.0],
+                                   [0.0,0.0,1.0,0.0],
+                                   [-0.5,0.0,0.0,1.0]], (1.0, 1.0, 0.0, 1.0));
         target.finish().unwrap();
     }
 
