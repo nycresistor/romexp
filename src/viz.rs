@@ -274,8 +274,8 @@ impl<'a> Visualizer<'a> {
     fn byte_from_coords(&self, pos : (f64, f64) ) -> Option<u32> {
         // find (possibly off-screen) location of 0,0 in data.
         // adjust for zoom
-        let (x, y) = (pos.0/self.zoom as f64 + self.ul_offset.0 as f64,
-                      pos.1/self.zoom as f64 + self.ul_offset.1 as f64);
+        let (x, y) = ((pos.0 + self.ul_offset.0 as f64)/self.zoom as f64,
+                      (pos.1 + self.ul_offset.1 as f64)/self.zoom as f64);
         // add deltas to upper left corner of image
         
         if x < 0.0 || y < 0.0
