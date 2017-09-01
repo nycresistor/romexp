@@ -75,7 +75,7 @@ pub struct Visualizer<'a> {
     annotation_tex : glium::texture::UnsignedTexture2d,
     annotation_d : Vec<u8>,
     zoom : f32,
-    ul_offset : (f32, f32),
+    ul_offset : (f32, f32), // offset of upper left hand corner IN PX OF CURRENT ZOOM
     pub closed : bool,
     mouse_state : MouseState,
     dat : &'a [u8],
@@ -193,6 +193,19 @@ impl<'a> Visualizer<'a> {
         target.finish().unwrap();
     }
 
+    fn zoom_to_center(&mut self, cursor : (f64, f64), z : f32) {
+        fn findul(ul : f32, cursor : f32, oldz : f32, newz : f32) -> f32 {
+            // convert all coords to zoom level 1.0
+            let ul1 = ul / oldz;
+            let cursor1 = cursor / oldz;
+            let ulnew1 = ul1 + (cursor1 * (1.0 - 1.0/(newz/oldz)));
+            ulnew1 * newz
+        }
+        self.ul_offset = ( findul(self.ul_offset.0, cursor.0 as f32, self.zoom, z),
+                          findul(self.ul_offset.1, cursor.1 as f32, self.zoom, z) );
+        self.zoom = z;
+    }
+
     fn zoom_to(&mut self, z : f32) {
         fn findul(ul : f32, win : u32, oldz : f32, newz : f32) -> f32 {
             let half = win as f32 / 2.0;
@@ -218,7 +231,8 @@ impl<'a> Visualizer<'a> {
         match d {
             glutin::MouseScrollDelta::LineDelta(h,v) => {
                 let z = self.zoom * (1.1 as f32).powf(-v);
-                self.zoom_to(if z >= 1.0 { z } else { 1.0 } );
+                let pos = self.mouse_state.last_pos;
+                self.zoom_to_center(pos,if z >= 1.0 { z } else { 1.0 } );
             },
             _ => {}
         }
