@@ -66,6 +66,9 @@ impl Font {
         }
     }
 
+    pub fn width(&self,text:&str) -> u32 { 8*text.len() as u32 }
+    pub fn height(&self) -> u32 { 8 }
+
     pub fn draw(&self, 
                 display : &glium::Display, 
                 frame : &mut glium::Frame, 
@@ -79,7 +82,7 @@ impl Font {
         let cw = 8.0 * pw;
         let ch = 8.0 * ph;
         let mut x = -1.0 + (text_pos.0 as f32 * pw);
-        let mut y = (1.0 - ch) - (text_pos.0 as f32 * ph);
+        let mut y = (1.0 - ch) - (text_pos.1 as f32 * ph);
 
         const INDICES : [u16; 6] = [
             0, 1, 2,

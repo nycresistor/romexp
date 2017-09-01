@@ -182,7 +182,14 @@ impl<'a> Visualizer<'a> {
             
         target.draw(&self.positions, &self.indices, &self.program,
                     &uniforms, &Default::default()).unwrap();
-        self.font.draw(&self.display, &mut target, self.size, (0,0), "Hello world");
+        let bfc = self.byte_from_coords(self.mouse_state.last_pos);
+        let text = match bfc {
+            Some(x) => format!("0x{:x}",x),
+            None => String::new(),
+        };
+        let location = (self.size.0 - self.font.width(text.as_str()),
+                        self.size.1 - self.font.height());
+        self.font.draw(&self.display, &mut target, self.size, location, text.as_str());
         target.finish().unwrap();
     }
 
@@ -286,12 +293,12 @@ impl<'a> Visualizer<'a> {
         
         if x < 0.0 || y < 0.0
         {
-            Some(0)
+            None
         } else {
             let column = x as u32/self.stride;
             let row = y as u32;
             let idx = column * self.col_height + row;
-            if idx < self.data_len as u32 { Some(idx) } else { Some(self.data_len as u32) }
+            if idx < self.data_len as u32 { Some(idx) } else { None }
         }
     }
 
