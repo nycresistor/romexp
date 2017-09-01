@@ -1,5 +1,4 @@
 extern crate glium;
-extern crate glium_text_rusttype;
 
 use glium::{glutin, Surface};
 
@@ -9,6 +8,7 @@ use std::str;
 use glium::glutin::KeyboardInput;
 
 use annotation;
+use font;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -79,8 +79,7 @@ pub struct Visualizer<'a> {
     pub closed : bool,
     mouse_state : MouseState,
     dat : &'a [u8],
-    text_system : glium_text_rusttype::TextSystem,
-    font_texture : glium_text_rusttype::FontTexture,
+    font : font::Font,
 }
 
 impl<'a> Visualizer<'a> {
@@ -126,11 +125,7 @@ impl<'a> Visualizer<'a> {
         let texture = glium::texture::UnsignedTexture2d::with_mipmaps(&display, teximg, glium::texture::MipmapsOption::NoMipmap).unwrap();
         let annotation_tex = glium::texture::UnsignedTexture2d::with_mipmaps(&display, annotation_img, glium::texture::MipmapsOption::NoMipmap).unwrap();
 
-
-
-        let text_system = glium_text_rusttype::TextSystem::new(&display);
-        let font_size = 8;
-        let font_texture = glium_text_rusttype::FontTexture::new(&display, &include_bytes!("fonts/Px437_Kaypro2K.ttf")[..], font_size,glium_text_rusttype::FontTexture::ascii_character_list() ).unwrap();
+        let f = font::Font::new(&display);
         
         let mut vz = Visualizer {
             events : events_loop,
@@ -151,8 +146,7 @@ impl<'a> Visualizer<'a> {
             closed: false,
             mouse_state : MouseState::new(),
             dat : dat,
-            text_system : text_system,
-            font_texture : font_texture,
+            font : f,
         };
         vz.set_size(size);
         vz
@@ -188,14 +182,7 @@ impl<'a> Visualizer<'a> {
             
         target.draw(&self.positions, &self.indices, &self.program,
                     &uniforms, &Default::default()).unwrap();
-        let text = glium_text_rusttype::TextDisplay::new(&self.text_system, &self.font_texture,"HELLO WORLD");
-        let fsz = 32.0 / self.size.0 as f32;
-        let aspect = self.size.1 as f32/ self.size.0 as f32;
-        glium_text_rusttype::draw(&text, &self.text_system, &mut target,
-                                  [[fsz,0.0,0.0,0.0],
-                                   [0.0,fsz/aspect,0.0,0.0],
-                                   [0.0,0.0,1.0,0.0],
-                                   [-0.5,0.0,0.0,1.0]], (1.0, 1.0, 0.0, 1.0));
+        self.font.draw(&self.display, &mut target, self.size, (0,0), "Hello world");
         target.finish().unwrap();
     }
 

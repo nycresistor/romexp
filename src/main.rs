@@ -11,7 +11,7 @@ use std::str;
 
 mod annotation;
 mod viz;
-
+mod font;
         
 
 fn main() {
