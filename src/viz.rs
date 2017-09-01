@@ -297,7 +297,7 @@ impl<'a> Visualizer<'a> {
                       (pos.1 + self.ul_offset.1 as f64)/self.zoom as f64);
         // add deltas to upper left corner of image
         
-        if x < 0.0 || y < 0.0
+        if x < 0.0 || y < 0.0 || y >= self.col_height as f64
         {
             None
         } else {
