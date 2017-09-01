@@ -20,6 +20,7 @@ pub struct Font {
     font_tex : glium::texture::UnsignedTexture2d,
     program : glium::Program,
     params : glium::DrawParameters<'static>,
+    zoom_factor : f32,
 }
 
 impl Font {
@@ -63,11 +64,12 @@ impl Font {
             font_tex : font_tex,
             program : program,
             params : params,
+            zoom_factor : 2.0,
         }
     }
 
-    pub fn width(&self,text:&str) -> u32 { 8*text.len() as u32 }
-    pub fn height(&self) -> u32 { 8 }
+    pub fn width(&self,text:&str) -> u32 { (self.zoom_factor*8.0*text.len() as f32) as u32 }
+    pub fn height(&self) -> u32 { (self.zoom_factor*8.0) as u32 }
 
     pub fn draw(&self, 
                 display : &glium::Display, 
@@ -79,8 +81,8 @@ impl Font {
         // chars are 8x8
         let pw = 2.0 / window_size.0 as f32;
         let ph = 2.0 / window_size.1 as f32;
-        let cw = 8.0 * pw;
-        let ch = 8.0 * ph;
+        let cw = self.zoom_factor * 8.0 * pw;
+        let ch = self.zoom_factor * 8.0 * ph;
         let mut x = -1.0 + (text_pos.0 as f32 * pw);
         let mut y = (1.0 - ch) - (text_pos.1 as f32 * ph);
 
@@ -103,7 +105,7 @@ impl Font {
             let positions = glium::VertexBuffer::new(display, &vertices).unwrap();
             
             let uniforms = uniform! {
-                in_color : (0.0 as f32, 1.0 as f32, 0.0 as f32, 0.6 as f32),
+                in_color : (0.0 as f32, 1.0 as f32, 0.0 as f32, 0.9 as f32),
                 tex : &self.font_tex,
             };
             
