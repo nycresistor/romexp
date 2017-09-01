@@ -129,8 +129,8 @@ impl<'a> Visualizer<'a> {
 
 
         let text_system = glium_text_rusttype::TextSystem::new(&display);
-        let font_size = 48;
-        let font_texture = glium_text_rusttype::FontTexture::new(&display, &include_bytes!("fonts/Px437_ATT_PC6300.ttf")[..], font_size,glium_text_rusttype::FontTexture::ascii_character_list() ).unwrap();
+        let font_size = 8;
+        let font_texture = glium_text_rusttype::FontTexture::new(&display, &include_bytes!("fonts/Px437_Kaypro2K.ttf")[..], font_size,glium_text_rusttype::FontTexture::ascii_character_list() ).unwrap();
         
         let mut vz = Visualizer {
             events : events_loop,
@@ -189,9 +189,11 @@ impl<'a> Visualizer<'a> {
         target.draw(&self.positions, &self.indices, &self.program,
                     &uniforms, &Default::default()).unwrap();
         let text = glium_text_rusttype::TextDisplay::new(&self.text_system, &self.font_texture,"HELLO WORLD");
+        let fsz = 32.0 / self.size.0 as f32;
+        let aspect = self.size.1 as f32/ self.size.0 as f32;
         glium_text_rusttype::draw(&text, &self.text_system, &mut target,
-                                  [[0.2,0.0,0.0,0.0],
-                                   [0.0,0.2,0.0,0.0],
+                                  [[fsz,0.0,0.0,0.0],
+                                   [0.0,fsz/aspect,0.0,0.0],
                                    [0.0,0.0,1.0,0.0],
                                    [-0.5,0.0,0.0,1.0]], (1.0, 1.0, 0.0, 1.0));
         target.finish().unwrap();
