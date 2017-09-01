@@ -79,7 +79,7 @@ impl Font {
         let cw = 8.0 * pw;
         let ch = 8.0 * ph;
         let mut x = -1.0 + (text_pos.0 as f32 * pw);
-        let mut y = -1.0 + (text_pos.0 as f32 * ph);
+        let mut y = (1.0 - ch) - (text_pos.0 as f32 * ph);
 
         const INDICES : [u16; 6] = [
             0, 1, 2,
@@ -100,7 +100,7 @@ impl Font {
             let positions = glium::VertexBuffer::new(display, &vertices).unwrap();
             
             let uniforms = uniform! {
-                in_color : [0.0, 1.0, 0.0, 1.0],
+                in_color : (0.0 as f32, 1.0 as f32, 0.0 as f32, 0.6 as f32),
                 tex : &self.font_tex,
             };
             
