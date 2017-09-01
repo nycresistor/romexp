@@ -35,7 +35,7 @@ void main() {
      uint tex_off = bitidx / 8u;
      uint tex_bit_off = bitidx % 8u;
      
-     if (row > (colstride/bitstride) || tex_off >= datalen) {
+     if (row >= (colstride/bitstride) || tex_off >= datalen) {
      	color = vec4(0.0,0.0,0.4,1.0);
      	return;
 	}	
@@ -45,7 +45,7 @@ void main() {
     // get annotation
     uint anno = (texelFetch(annotex, ivec2(int(tex_off_x),int(tex_off_y)),0).r);
     vec4 c = vec4(float(rv),float(rv+anno),float(rv), 1.0);
-    if (bitidx >= selection[0] && bitidx < selection[1]) {
+    if (bitidx >= selection[0] && bitidx <= selection[1]+7u) {
         c.b = 0.0; c.g = 0.0;
     }
      color = c; 

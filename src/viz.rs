@@ -217,7 +217,7 @@ impl<'a> Visualizer<'a> {
     fn handle_mouse_scroll(&mut self, d : glutin::MouseScrollDelta) {
         match d {
             glutin::MouseScrollDelta::LineDelta(h,v) => {
-                let z = self.zoom - 0.1 * v;
+                let z = self.zoom * (1.1 as f32).powf(-v);
                 self.zoom_to(if z >= 1.0 { z } else { 1.0 } );
             },
             _ => {}
@@ -268,18 +268,24 @@ impl<'a> Visualizer<'a> {
     fn handle_mouse_move(&mut self, pos : (f64, f64) ) {
         use self::glutin::MouseButton::*;
         self.mouse_state.last_pos = pos;
-        if self.mouse_state.down.contains(&Left) {
-            let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
-            let start_idx = self.byte_from_coords(self.mouse_state.start_drag_pos.unwrap()).unwrap();
-            let end_idx = drag_end.unwrap();
-            self.set_selection(start_idx * 8, end_idx * 8); // *8 because bit index
-        } else if self.mouse_state.down.contains(&Middle) {
-            let (x1, y1) = self.mouse_state.start_drag_pos.unwrap();
-            let (x2, y2) = self.mouse_state.last_pos;
-            let (dx, dy) = (x2 - x1, y2 - y1);
-            let xoff = self.mouse_state.start_ul_offset.0 - dx as f32;
-            let yoff = self.mouse_state.start_ul_offset.1 - dy as f32;
-            self.ul_offset = (xoff, yoff);
+        if !self.mouse_state.down.is_empty() {
+            if self.mouse_state.down.contains(&Left) {
+                let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
+                let drag_start = match self.mouse_state.start_drag_pos {
+                    None => None, Some(x) => self.byte_from_coords(x),
+                };
+                match (drag_start, drag_end) {
+                    (Some(s), Some(e)) => self.set_selection(s * 8, e * 8), // *8 because bit index
+                    _ => {},
+                }
+            } else if self.mouse_state.down.contains(&Middle) {
+                let (x1, y1) = self.mouse_state.start_drag_pos.unwrap();
+                let (x2, y2) = self.mouse_state.last_pos;
+                let (dx, dy) = (x2 - x1, y2 - y1);
+                let xoff = self.mouse_state.start_ul_offset.0 - dx as f32;
+                let yoff = self.mouse_state.start_ul_offset.1 - dy as f32;
+                self.ul_offset = (xoff, yoff);
+            }
         }
     }
     
@@ -307,14 +313,8 @@ impl<'a> Visualizer<'a> {
         use self::glutin::ElementState::*;
 
         match button {
-            Left => match state {
-                Released => {
-                    let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
-                    let start_idx = self.byte_from_coords(self.mouse_state.start_drag_pos.unwrap()).unwrap();
-                    let end_idx = drag_end.unwrap();
-                    self.set_selection(start_idx*8, end_idx*8); // *8 because bit index
-                },
-                _ => {},
+            Left => {
+                // No commit on mouse release; selection is updated during drag
             },
             Middle => match state {
                 Pressed => {
