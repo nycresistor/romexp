@@ -9,6 +9,30 @@ pub trait AnnotationEngine {
     fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>>;
 }
 
+pub struct AnnotationStore {
+    v : Vec<Box<Annotation>>
+}
+
+impl AnnotationStore {
+    fn new() -> AnnotationStore {
+        AnnotationStore { v : Vec::new() }
+    }
+    fn insert(&mut self, a : Box<Annotation>) {
+        self.v.push(a)
+    }
+
+    fn query<'a>(&'a self, point : usize) -> Vec<&'a Box<Annotation>> {
+        let mut v = Vec::new();
+        for a in &self.v {
+            let span = a.span();
+            if (point >= span.0) && (point <= span.1) {
+                v.push(a);
+            }
+        }
+        v
+    }
+}
+
 pub struct CStringAnnotation {
     start : usize,
     end : usize,
@@ -97,4 +121,21 @@ mod tests {
         assert_eq!(3,annotations.len());
         
     }
+
+    #[test]
+    fn annotation_store() {
+        let mut store = AnnotationStore::new();
+        fn mka( start : usize, end : usize ) -> Box<Annotation> {
+            let c = format!("{}-{}",start,end).to_string();
+            Box::new(CStringAnnotation { start : start, end : end, contents : c })
+        }
+        store.insert(mka(1,20));
+        store.insert(mka(5,10));
+        store.insert(mka(9,30));
+        assert_eq!(0,store.query(0).len());
+        assert_eq!(1,store.query(1).len());
+        assert_eq!(2,store.query(6).len());
+        assert_eq!(3,store.query(9).len());
+    }
 }
+
