@@ -6,7 +6,7 @@ pub trait Annotation {
 
 pub trait AnnotationEngine {
     fn new() -> Self;
-    fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>>;
+    fn build_annotations(&self, raw_data : &[u8]) -> AnnotationStore;
 }
 
 pub struct AnnotationStore {
@@ -14,14 +14,14 @@ pub struct AnnotationStore {
 }
 
 impl AnnotationStore {
-    fn new() -> AnnotationStore {
+    pub fn new() -> AnnotationStore {
         AnnotationStore { v : Vec::new() }
     }
-    fn insert(&mut self, a : Box<Annotation>) {
+    pub fn insert(&mut self, a : Box<Annotation>) {
         self.v.push(a)
     }
 
-    fn query<'a>(&'a self, point : usize) -> Vec<&'a Box<Annotation>> {
+    pub fn query<'a>(&'a self, point : usize) -> Vec<&'a Box<Annotation>> {
         let mut v = Vec::new();
         for a in &self.v {
             let span = a.span();
@@ -33,6 +33,12 @@ impl AnnotationStore {
     }
 }
 
+impl IntoIterator for AnnotationStore {
+    type Item = Box<Annotation>;
+    type IntoIter = ::std::vec::IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter { self.v.into_iter() }
+}
+    
 pub struct CStringAnnotation {
     start : usize,
     end : usize,
@@ -74,8 +80,8 @@ impl AnnotationEngine for CStringAnnotationEngine {
         CStringAnnotationEngine {}
     }
 
-    fn build_annotations(&self, raw_data : &[u8]) -> Vec<Box<Annotation>> {
-        let mut annotations : Vec<Box<Annotation>> = Vec::new();
+    fn build_annotations(&self, raw_data : &[u8]) -> AnnotationStore {
+        let mut annotations = AnnotationStore::new();
         // Iterate through and find null-terminated sequences of ascii
         // characters longer than 4 chars
         let min_str_len = 4;
@@ -94,7 +100,7 @@ impl AnnotationEngine for CStringAnnotationEngine {
                           end : idx+1,
                          contents : String::from_utf8(v).unwrap() };
                         start = None;
-                        annotations.push(Box::new(a));
+                        annotations.insert(Box::new(a));
                     },
                     _ => { start = None; }
                 }
@@ -118,7 +124,7 @@ mod tests {
         static ASCII_TEST: &'static [u8] = include_bytes!("../../sample_binaries/strings-test.bin");
         let engine = CStringAnnotationEngine::new();
         let annotations = engine.build_annotations(ASCII_TEST);
-        assert_eq!(3,annotations.len());
+        assert_eq!(3,annotations.v.len());
         
     }
 
