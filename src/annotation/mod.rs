@@ -2,6 +2,7 @@ pub trait Annotation {
     fn span(&self) -> (usize, usize);
     fn comments(&self) -> &str;
     fn type_str(&self) -> &str;
+    fn confidence(&self) -> u8;
 }
 
 pub trait AnnotationEngine {
@@ -50,6 +51,7 @@ impl Annotation for CStringAnnotation {
     fn span(&self) -> (usize, usize) { (self.start, self.end) }
     fn comments(&self) -> &str { self.contents.as_str() }
     fn type_str(&self) -> &str { "ASCII String" }
+    fn confidence(&self) -> u8 { 255 }
 }
 
 pub struct CStringAnnotationEngine { }
