@@ -10,12 +10,13 @@ pub trait AnnotationEngine {
 }
 
 pub struct AnnotationStore {
-    v : Vec<Box<Annotation>>
+    v : Vec<Box<Annotation>>,
+    title : String,
 }
 
 impl AnnotationStore {
-    pub fn new() -> AnnotationStore {
-        AnnotationStore { v : Vec::new() }
+    pub fn new(title : &str) -> AnnotationStore {
+        AnnotationStore { v : Vec::new(), title : String::from(title), }
     }
     pub fn insert(&mut self, a : Box<Annotation>) {
         self.v.push(a)
@@ -81,7 +82,7 @@ impl AnnotationEngine for CStringAnnotationEngine {
     }
 
     fn build_annotations(&self, raw_data : &[u8]) -> AnnotationStore {
-        let mut annotations = AnnotationStore::new();
+        let mut annotations = AnnotationStore::new("C Strings");
         // Iterate through and find null-terminated sequences of ascii
         // characters longer than 4 chars
         let min_str_len = 4;
@@ -130,7 +131,7 @@ mod tests {
 
     #[test]
     fn annotation_store() {
-        let mut store = AnnotationStore::new();
+        let mut store = AnnotationStore::new("test store");
         fn mka( start : usize, end : usize ) -> Box<Annotation> {
             let c = format!("{}-{}",start,end).to_string();
             Box::new(CStringAnnotation { start : start, end : end, contents : c })

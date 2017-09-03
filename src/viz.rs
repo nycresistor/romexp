@@ -80,7 +80,7 @@ pub struct Visualizer<'a> {
     mouse_state : MouseState,
     dat : &'a [u8],
     font : font::Font,
-    annotation_store : annotation::AnnotationStore,
+    annotation_store : Option<annotation::AnnotationStore>,
 }
 
 impl<'a> Visualizer<'a> {
@@ -148,7 +148,7 @@ impl<'a> Visualizer<'a> {
             mouse_state : MouseState::new(),
             dat : dat,
             font : f,
-            annotation_store : annotation::AnnotationStore::new(),
+            annotation_store : None,
         };
         vz.set_size(size);
         vz
