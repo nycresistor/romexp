@@ -84,7 +84,7 @@ impl Font {
         let cw = self.zoom_factor * 8.0 * pw;
         let ch = self.zoom_factor * 8.0 * ph;
         let mut x = -1.0 + (text_pos.0 as f32 * pw);
-        let mut y = (1.0 - ch) - (text_pos.1 as f32 * ph);
+        let y = (1.0 - ch) - (text_pos.1 as f32 * ph);
 
         const INDICES : [u16; 6] = [
             0, 1, 2,
@@ -95,8 +95,8 @@ impl Font {
         for b in text.as_bytes() {
             let tex_left = charw * *b as f32;
 
-            // Two triangles to cover the window
-            let mut vertices : [Vertex; 4] = [
+            // Two triangles to cover the character
+            let vertices : [Vertex; 4] = [
                 Vertex{ position : [x,y+ch], tex_coords : [tex_left,0.0] },
                 Vertex{ position : [x+cw,y+ch], tex_coords : [tex_left+charw,0.0] },
                 Vertex{ position : [x+cw,y], tex_coords : [tex_left+charw,1.0] },
@@ -110,7 +110,7 @@ impl Font {
             };
             
             frame.draw(&positions, &indices, &self.program,
-                       &uniforms, &self.params);
+                       &uniforms, &self.params).unwrap();
             x = x + cw;
         }
         

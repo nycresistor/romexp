@@ -85,7 +85,7 @@ pub struct Visualizer<'a> {
 
 impl<'a> Visualizer<'a> {
     pub fn new(size : (u32, u32), dat : &[u8]) -> Visualizer {
-        let mut events_loop = glutin::EventsLoop::new();
+        let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title("ROM Explorer")
             .with_dimensions(size.0, size.1);
@@ -231,7 +231,7 @@ impl<'a> Visualizer<'a> {
 
     fn handle_mouse_scroll(&mut self, d : glutin::MouseScrollDelta) {
         match d {
-            glutin::MouseScrollDelta::LineDelta(h,v) => {
+            glutin::MouseScrollDelta::LineDelta(_,v) => {
                 let z = self.zoom * (1.1 as f32).powf(-v);
                 let pos = self.mouse_state.last_pos;
                 self.zoom_to_center(pos,if z >= 1.0 { z } else { 1.0 } );
