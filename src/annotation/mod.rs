@@ -15,6 +15,8 @@ pub struct AnnotationStore {
     title : String,
 }
 
+use std::slice::Iter;
+
 impl AnnotationStore {
     pub fn new(title : &str) -> AnnotationStore {
         AnnotationStore { v : Vec::new(), title : String::from(title), }
@@ -33,6 +35,8 @@ impl AnnotationStore {
         }
         v
     }
+
+    pub fn iter(&self) -> Iter<Box<Annotation>> { self.v.iter() }
 }
 
 impl IntoIterator for AnnotationStore {
@@ -40,7 +44,7 @@ impl IntoIterator for AnnotationStore {
     type IntoIter = ::std::vec::IntoIter<Self::Item>;
     fn into_iter(self) -> Self::IntoIter { self.v.into_iter() }
 }
-    
+
 pub struct CStringAnnotation {
     start : usize,
     end : usize,

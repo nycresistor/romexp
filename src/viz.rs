@@ -192,6 +192,21 @@ impl<'a> Visualizer<'a> {
         let location = (self.size.0 - self.font.width(text.as_str()),
                         self.size.1 - self.font.height());
         self.font.draw(&self.display, &mut target, self.size, location, text.as_str());
+        match bfc {
+            Some(x) => match self.annotation_store {
+                Some(ref store) => {
+                    let annos = store.query(x as usize);
+                    let y = 0;
+                    for a in annos {
+                        let s = a.comments();
+                        let location = (self.size.0.saturating_sub(self.font.width(s)), y);
+                        self.font.draw(&self.display, &mut target, self.size, location, s);
+                    }
+                },
+                None => {}
+            },
+            None => {}
+        }
         target.finish().unwrap();
     }
 
@@ -268,11 +283,12 @@ impl<'a> Visualizer<'a> {
                         use annotation::AnnotationEngine;
                         let engine = annotation::CStringAnnotationEngine::new();
                         let annotations = engine.build_annotations(self.dat);
-                        for annotation in annotations {
+                        for annotation in annotations.iter() {
                             for n in annotation.span().0 .. annotation.span().1 {
                                 self.annotation_d[n] = 0x66;
                             }
                         }
+                        self.annotation_store = Some(annotations);
                         self.update_annotations();
                     },
                     _ => (),
