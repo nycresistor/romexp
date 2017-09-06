@@ -27,7 +27,7 @@ impl Font {
     pub fn new(display : &glium::Display) -> Font {
         use glium::texture::*;
         let font_img = RawImage2d {
-            data : std::borrow::Cow::Borrowed(include_bytes!("fonts/Osborne_I.charrom.2")),
+            data : std::borrow::Cow::Borrowed(include_bytes!("fonts/Osborne_I.charrom")),
             width : 1024,
             height : 10,
             format : ClientFormat::U8,
