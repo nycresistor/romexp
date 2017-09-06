@@ -27,9 +27,9 @@ impl Font {
     pub fn new(display : &glium::Display) -> Font {
         use glium::texture::*;
         let font_img = RawImage2d {
-            data : std::borrow::Cow::Borrowed(include_bytes!("fonts/Osborne_I.charrom")),
+            data : std::borrow::Cow::Borrowed(include_bytes!("fonts/Osborne_I.charrom.2")),
             width : 1024,
-            height : 8,
+            height : 10,
             format : ClientFormat::U8,
         };
         let font_tex = UnsignedTexture2d::with_mipmaps(display,
@@ -69,7 +69,7 @@ impl Font {
     }
 
     pub fn width(&self,text:&str) -> u32 { (self.zoom_factor*8.0*text.len() as f32) as u32 }
-    pub fn height(&self) -> u32 { (self.zoom_factor*8.0) as u32 }
+    pub fn height(&self) -> u32 { (self.zoom_factor*10.0) as u32 }
 
     pub fn draw(&self, 
                 display : &glium::Display, 
@@ -82,7 +82,7 @@ impl Font {
         let pw = 2.0 / window_size.0 as f32;
         let ph = 2.0 / window_size.1 as f32;
         let cw = self.zoom_factor * 8.0 * pw;
-        let ch = self.zoom_factor * 8.0 * ph;
+        let ch = self.zoom_factor * 10.0 * ph;
         let mut x = -1.0 + (text_pos.0 as f32 * pw);
         let y = (1.0 - ch) - (text_pos.1 as f32 * ph);
 
