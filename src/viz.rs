@@ -67,8 +67,6 @@ pub struct Visualizer<'a> {
     stride : u32,
     /// height, in rows, of each colum
     col_height : u32,
-    /// width and height of window, in px
-    size : (u32, u32),
     /// start and end of current selection, as byte idx
     selection : (u32, u32),
     texture : glium::texture::UnsignedTexture2d,
@@ -141,7 +139,6 @@ impl<'a> Visualizer<'a> {
             texture : texture,
             annotation_tex : annotation_tex,
             annotation_d : annotation_d,
-            size : size,
             zoom : 1.0,
             ul_offset : (0.0, 0.0),
             closed: false,
@@ -150,16 +147,11 @@ impl<'a> Visualizer<'a> {
             font : f,
             annotation_store : None,
         };
-        vz.set_size(size);
         vz
     }
     
     pub fn set_selection(&mut self, start : u32, finish : u32) {
         self.selection = (start, finish);
-    }
-
-    pub fn set_size(&mut self, size : (u32, u32)) {
-        self.size = size;
     }
 
     pub fn set_stride(&mut self, stride : u32) {
@@ -169,8 +161,9 @@ impl<'a> Visualizer<'a> {
     pub fn render(&mut self) {
         let mut target = self.display.draw();
         target.clear_color(1.0,0.0,0.0,1.0);
+        let size = self.display.get_framebuffer_dimensions();
         let uniforms = uniform! {
-            win : [ 0, 0, self.size.0, self.size.1 ],
+            win : [ 0, 0, size.0, size.1 ],
             bitstride : self.stride,
             colstride : self.stride*self.col_height,
             datalen : self.data_len as u32,
@@ -189,9 +182,9 @@ impl<'a> Visualizer<'a> {
             Some(x) => format!("0x{:x}",x),
             None => String::new(),
         };
-        let location = (self.size.0 - self.font.width(text.as_str()),
-                        self.size.1 - self.font.height());
-        self.font.draw(&self.display, &mut target, self.size, location, text.as_str());
+        let location = (size.0 - self.font.width(text.as_str()),
+                        size.1 - self.font.height());
+        self.font.draw(&self.display, &mut target, size, location, text.as_str());
         match bfc {
             Some(x) => match self.annotation_store {
                 Some(ref store) => {
@@ -199,8 +192,8 @@ impl<'a> Visualizer<'a> {
                     let y = 0;
                     for a in annos {
                         let s = a.comments();
-                        let location = (self.size.0.saturating_sub(self.font.width(s)), y);
-                        self.font.draw(&self.display, &mut target, self.size, location, s);
+                        let location = (size.0.saturating_sub(self.font.width(s)), y);
+                        self.font.draw(&self.display, &mut target, size, location, s);
                     }
                 },
                 None => {}
@@ -229,8 +222,9 @@ impl<'a> Visualizer<'a> {
             let c = ul + (half / oldz);
             c - half / newz
         }
-        self.ul_offset = ( findul(self.ul_offset.0, self.size.0, self.zoom, z),
-                          findul(self.ul_offset.1, self.size.1, self.zoom, z) );
+        let size = self.display.get_framebuffer_dimensions();        
+        self.ul_offset = ( findul(self.ul_offset.0, size.0, self.zoom, z),
+                          findul(self.ul_offset.1, size.1, self.zoom, z) );
         self.zoom = z;
     }
     
@@ -378,7 +372,6 @@ impl<'a> Visualizer<'a> {
             match event {
                 glutin::Event::WindowEvent { event, .. } => match event {
                     glutin::WindowEvent::Closed => self.closed = true,
-                    glutin::WindowEvent::Resized( w, h ) => self.set_size((w,h)),
                     glutin::WindowEvent::KeyboardInput {input , ..} => self.handle_kb(input),
                     glutin::WindowEvent::MouseMoved {position, .. } => self.handle_mouse_move(position),
                     glutin::WindowEvent::MouseWheel {delta, .. } =>self.handle_mouse_scroll(delta),
