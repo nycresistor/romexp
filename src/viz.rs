@@ -1,6 +1,6 @@
 extern crate glfw;
 
-use glfw::{Window,WindowEvent};
+use glfw::{Window,WindowEvent,Context};
 use gl;
 use gl::types::*;
 
@@ -38,9 +38,7 @@ pub struct Visualizer<'a> {
     pub window : glfw::Window,
     pub events : std::sync::mpsc::Receiver<(f64, WindowEvent)>,
     program : GLuint,
-
-    positions : GLuint,
-    indices : GLuint,
+    vao : GLuint,
     data_len : usize,
     /// width, in bits, of each column
     stride : u32,
@@ -111,7 +109,7 @@ const VERTICES : [GLfloat; 16] = [
     -1.0, -1.0,    0.0, 0.0,
 ];
 
-const INDICES : [u16; 6] = [
+const INDICES : [GLuint; 6] = [
     0, 1, 2,
     0, 3, 2,
 ];
@@ -127,35 +125,42 @@ impl<'a> Visualizer<'a> {
             .expect("Failed to create GLFW window.");
         gl::load_with(|s| window.get_proc_address(s) as *const _);
         let program = build_program(VS_SRC, FS_SRC).unwrap();
-
-        let mut positions : GLuint = 0;
+        window.set_key_polling(true);
+        let mut vbo : GLuint = 0;
+        let mut ebo : GLuint = 0;
+        let mut vao : GLuint = 0;
         unsafe {
-            gl::GenBuffers(1,&mut positions);
-            gl::BindBuffer(gl::ARRAY_BUFFER, positions);
-            gl::BufferData(gl::ARRAY_BUFFER, 4*16, VERTICES.as_ptr() as *const c_void, gl::STATIC_DRAW);
-        }
-
-        let mut indices : GLuint = 0;
-        unsafe {
-            gl::GenBuffers(1,&mut indices);
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, indices);
-            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, 4*6, INDICES.as_ptr() as *const c_void, gl::STATIC_DRAW);
+            gl::GenVertexArrays(1,&mut vao);
+            gl::BindVertexArray(vao);
+            
+            gl::GenBuffers(1,&mut vbo);
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+            gl::BufferData(gl::ARRAY_BUFFER, 4*16, VERTICES.as_ptr() as *const _, gl::STATIC_DRAW);
+            gl::GenBuffers(1,&mut ebo);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, 4*6, INDICES.as_ptr() as *const _, gl::STATIC_DRAW);
             gl::UseProgram(program);
+            gl::BindFragDataLocation(program, 0,
+                                     std::ffi::CString::new("color").unwrap().as_ptr());
+            
         }
 
         fn get_attrib_location(program : GLuint , name : &str) -> GLint {
             let c_str = std::ffi::CString::new(name.as_bytes()).unwrap();
-            unsafe { gl::GetAttribLocation(program, c_str.as_ptr()) }
+            let loc = unsafe { gl::GetAttribLocation(program, c_str.as_ptr()) };
+            println!("Found {} at {}",name,loc);
+            loc
         }
-        let pos_attrib = get_attrib_location(program,"position") as GLuint;
+        use std::mem;
         unsafe {
+            let pos_attrib = get_attrib_location(program,"position") as GLuint;
             gl::EnableVertexAttribArray(pos_attrib);
             gl::VertexAttribPointer(pos_attrib, 2, gl::FLOAT, gl::FALSE,
                                     4*4, std::ptr::null());
             let tex_attrib = get_attrib_location(program,"tex_coords") as GLuint;
             gl::EnableVertexAttribArray(tex_attrib as GLuint);
             gl::VertexAttribPointer(tex_attrib, 2, gl::FLOAT, gl::FALSE,
-                                    4*4, (2*4) as *const c_void);
+                                    4*4, (2*4) as *const _);
         }
         let maxw : usize = 16384;
         let tw : usize = maxw;
@@ -187,8 +192,7 @@ impl<'a> Visualizer<'a> {
             window : window,
             events : events,
             program : program,
-            positions : positions,
-            indices : indices,
+            vao : vao,
             data_len : dat.len(),
             stride : 8,
             col_height : 512,
@@ -216,14 +220,17 @@ impl<'a> Visualizer<'a> {
 
     pub fn uniloc(&self, name : &str) -> GLint {
         let c_str = std::ffi::CString::new(name.as_bytes()).unwrap();
-        unsafe { gl::GetUniformLocation(self.program, c_str.as_ptr()) }
+        let loc = unsafe { gl::GetUniformLocation(self.program, c_str.as_ptr()) };
+        println!("Found uniform {} at {}", name, loc);
+        loc
     }
     
     pub fn render(&mut self) {
         let size = self.window.get_size();
         unsafe {
-            gl::UseProgram(self.program);
-            gl::ClearColor(1.0,0.0,0.0,1.0);
+            gl::ClearColor(0.5,0.0,0.0,1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+            
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
             gl::Uniform1ui(self.uniloc("bitstride"), self.stride);
             gl::Uniform1ui(self.uniloc("colstride"), self.stride*self.col_height);
@@ -234,7 +241,8 @@ impl<'a> Visualizer<'a> {
             gl::Uniform1i(self.uniloc("annotex"), 1);
             gl::Uniform2i(self.uniloc("ul_offset"), self.ul_offset.0 as i32, self.ul_offset.1 as i32);
             gl::Uniform1f(self.uniloc("zoom"),self.zoom);
-                          
+
+            gl::BindVertexArray(self.vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }        
             
@@ -243,6 +251,8 @@ impl<'a> Visualizer<'a> {
             Some(x) => format!("0x{:x}",x),
             None => String::new(),
         };
+
+        self.window.swap_buffers();
         //let location = (size.0 - self.font.width(text.as_str()),
         //                size.1 - self.font.height());
         //self.font.draw(&self.display, &mut target, size, location, text.as_str());

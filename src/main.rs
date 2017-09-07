@@ -38,7 +38,7 @@ fn main() {
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     let mut viz = viz::Visualizer::new(&mut glfw, (512, 512), unsafe { rom.as_slice() });
-    
+    glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
     // let (mut window, events) = glfw.create_window(300, 300, "Hello this is window 1", glfw::WindowMode::Windowed)
     //     .expect("Failed to create GLFW window.");
 
@@ -47,9 +47,10 @@ fn main() {
 
     // window.set_key_polling(true);
     // window2.set_key_polling(true);
-    // window.make_current();
-    
-    while true {
+    viz.window.make_current();
+    viz.render();
+    viz.render();
+    while !viz.window.should_close() {
         glfw.poll_events();
         for (_, event) in glfw::flush_messages(&viz.events) {
             handle_window_event(&mut viz.window, event);
