@@ -178,14 +178,19 @@ impl<'a> Visualizer<'a> {
         unsafe {
             gl::GenTextures(1, &mut texture);
             gl::BindTexture(gl::TEXTURE_2D, texture);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);            
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, 0);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, 0);
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::R8UI as GLint,
                            tw as GLsizei, th as GLsizei, 0,
-                           gl::RED_INTEGER,gl::UNSIGNED_BYTE, d.as_ptr() as *const c_void);
+                           gl::RED_INTEGER,gl::UNSIGNED_BYTE, d.as_ptr() as *const GLvoid);
             gl::GenTextures(1, &mut annotation_tex);
             gl::BindTexture(gl::TEXTURE_2D, annotation_tex);
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::R8UI as GLint,
                            tw as GLsizei, th as GLsizei, 0,
                            gl::RED_INTEGER,gl::UNSIGNED_BYTE, cloned_annot.as_ptr() as *const c_void);
+            println!("Build textures {}, {}",texture, annotation_tex);
         }
         
         let mut vz = Visualizer {
@@ -237,11 +242,12 @@ impl<'a> Visualizer<'a> {
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
             gl::Uniform2ui(self.uniloc("selection"), self.selection.0, self.selection.1);
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
-            gl::Uniform1i(self.uniloc("romtex"), 0);
-            gl::Uniform1i(self.uniloc("annotex"), 1);
+            gl::Uniform1i(self.uniloc("romtex"), 0); //self.texture as i32);
+            gl::Uniform1i(self.uniloc("annotex"), 1); //self.annotation_tex as i32);
             gl::Uniform2i(self.uniloc("ul_offset"), self.ul_offset.0 as i32, self.ul_offset.1 as i32);
             gl::Uniform1f(self.uniloc("zoom"),self.zoom);
 
+            gl::BindTexture(gl::TEXTURE_2D, self.texture);
             gl::BindVertexArray(self.vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }        

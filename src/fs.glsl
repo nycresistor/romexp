@@ -48,5 +48,5 @@ void main() {
     if (bitidx >= selection[0] && bitidx <= selection[1]+7u) {
         c.b = 0.0; c.g = 0.0;
     }
-     color = c;
+    color = c;
 }
