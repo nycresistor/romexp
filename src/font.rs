@@ -13,13 +13,49 @@ static FS_SRC: &'static str = include_str!("fontfs.glsl");
 pub struct Font {
     program : GLuint,
     zoom_factor : f32,
+    vbo : GLuint,
+    ebo : GLuint,
+    vao : GLuint,
 }
+
+
+const INDICES : [GLuint; 6] = [
+    0, 1, 2,
+    0, 3, 2,
+];
 
 impl Font {
     pub fn new() -> Font {
         let mut texture : GLuint = 0;
         let bytes = include_bytes!("fonts/Osborne_I.charrom");
+        let mut vbo : GLuint = 0;
+        let mut ebo : GLuint = 0;
+        let mut vao : GLuint = 0;
+
+        let program = glutil::build_program(VS_SRC, FS_SRC)
+            .expect("Failed to create font shader program");
+
         unsafe {
+            gl::GenVertexArrays(1,&mut vao);
+            gl::BindVertexArray(vao);
+
+            gl::GenBuffers(1,&mut vbo);
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+            gl::GenBuffers(1,&mut ebo);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, 4*6, INDICES.as_ptr() as *const _, gl::STATIC_DRAW);
+
+            gl::UseProgram(program);
+            gl::BindFragDataLocation(program, 0,
+                                     std::ffi::CString::new("color").unwrap().as_ptr());
+            let pos_attrib = glutil::attrib_loc(program,"position");
+            gl::EnableVertexAttribArray(pos_attrib as GLuint);
+            gl::VertexAttribPointer(pos_attrib as GLuint, 2, gl::FLOAT, gl::FALSE,
+                                    4*4, std::ptr::null());
+            let tex_attrib = glutil::attrib_loc(program,"tex_coords");
+            gl::EnableVertexAttribArray(tex_attrib as GLuint);
+            gl::VertexAttribPointer(tex_attrib as GLuint, 2, gl::FLOAT, gl::FALSE,
+                                    4*4, (2*4) as *const _);
             gl::GenTextures(1, &mut texture);
             gl::ActiveTexture(gl::TEXTURE2);
             gl::BindTexture(gl::TEXTURE_2D, texture);
@@ -32,21 +68,22 @@ impl Font {
                            gl::RED_INTEGER,gl::UNSIGNED_BYTE, 
                            bytes.as_ptr() as *const _);
         }
-
-        let program = glutil::build_program(VS_SRC, FS_SRC)
-            .expect("Failed to create font shader program");
+        println!("vao {} vbo {} ebo {}", vao, vbo, ebo);
         Font {
             program : program,
             zoom_factor : 2.0,
+            vbo : vbo,
+            ebo : ebo,
+            vao : vao,
         }
     }
 
-    pub fn width(&self,text:&str) -> u32 { (self.zoom_factor*8.0*text.len() as f32) as u32 }
-    pub fn height(&self) -> u32 { (self.zoom_factor*10.0) as u32 }
+    pub fn width(&self,text:&str) -> i32 { (self.zoom_factor*8.0*text.len() as f32) as i32 }
+    pub fn height(&self) -> i32 { (self.zoom_factor*10.0) as i32 }
 
     pub fn draw(&self, 
-                window_size : (u32, u32),
-                text_pos : (u32, u32),
+                window_size : (i32, i32),
+                text_pos : (i32, i32),
                 text : &str) {
         let charw = 1.0 / 128.0;
         // chars are 8x10
@@ -57,33 +94,14 @@ impl Font {
         let mut x = -1.0 + (text_pos.0 as f32 * pw);
         let y = (1.0 - ch) - (text_pos.1 as f32 * ph);
 
-        const INDICES : [u16; 6] = [
-            0, 1, 2,
-            0, 3, 2,
-        ];
-        let mut vbo : GLuint = 0;
-        let mut ebo : GLuint = 0;
-        let mut vao : GLuint = 0;
         unsafe {
-            gl::GenVertexArrays(1,&mut vao);
-            gl::BindVertexArray(vao);
-            gl::GenBuffers(1,&mut vbo);
-            gl::GenBuffers(1,&mut ebo);
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, 4*6, INDICES.as_ptr() as *const _, gl::STATIC_DRAW);
             gl::UseProgram(self.program);
-            gl::BindFragDataLocation(self.program, 0,
-                                     std::ffi::CString::new("color").unwrap().as_ptr());
-            let pos_attrib = glutil::attrib_loc(self.program,"position") as GLuint;
-            gl::EnableVertexAttribArray(pos_attrib);
-            gl::VertexAttribPointer(pos_attrib, 2, gl::FLOAT, gl::FALSE,
-                                    4*4, std::ptr::null());
-            let tex_attrib = glutil::attrib_loc(self.program,"tex_coords") as GLuint;
-            gl::EnableVertexAttribArray(tex_attrib as GLuint);
-            gl::VertexAttribPointer(tex_attrib, 2, gl::FLOAT, gl::FALSE,
-                                    4*4, (2*4) as *const _);
+            gl::Uniform4f(glutil::uniloc(self.program,"in_color"), 0.0,1.0,0.0,0.9);
+            gl::Uniform1i(glutil::uniloc(self.program,"tex"), 2);
+            gl::ActiveTexture(gl::TEXTURE2);
+            gl::BindVertexArray(self.vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
         }
-
         for b in text.as_bytes() {
             let tex_left = charw * *b as f32;
 
@@ -94,12 +112,9 @@ impl Font {
                 x+cw,y,   tex_left+charw,1.0,
                 x,y,       tex_left,1.0,
             ];
+            //println!("x1 {} y1 {} x2 {} y2 {}",vertices[0], vertices[13],vertices[4],vertices[5]);
             unsafe {
-                gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
                 gl::BufferData(gl::ARRAY_BUFFER, 4*16, vertices.as_ptr() as *const _, gl::STATIC_DRAW);
-                gl::Uniform4f(glutil::uniloc(self.program,"in_color"), 0.0,1.0,0.0,0.9);
-                gl::Uniform1i(glutil::uniloc(self.program,"tex"), 2);
-                gl::BindVertexArray(vao);
                 gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
             }
             x = x + cw;

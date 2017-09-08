@@ -29,6 +29,7 @@ pub fn build_shader(src : &str, shader_type : GLenum) -> Option<GLuint> {
 
 pub fn build_program(vertex_shader_src : &str, fragment_shader_src : &str) -> Option<GLuint> {
     unsafe {
+        println!("Building program");
         let program = gl::CreateProgram();
         match (build_shader(vertex_shader_src, gl::VERTEX_SHADER),
                build_shader(fragment_shader_src, gl::FRAGMENT_SHADER)) {
@@ -41,6 +42,7 @@ pub fn build_program(vertex_shader_src : &str, fragment_shader_src : &str) -> Op
                 let mut linked : GLint = 0;
                 gl::GetProgramiv(program, gl::LINK_STATUS, &mut linked);
                 if linked == gl::TRUE as GLint {
+                    println!("Built program {}",program);
                     Some(program)
                 } else {
                     gl::DeleteProgram(program);

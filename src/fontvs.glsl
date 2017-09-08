@@ -1,5 +1,4 @@
 #version 130
-//uniform mat4 matrix;
 in vec2 position;
 in vec2 tex_coords;
 out vec2 v_tex_coords;

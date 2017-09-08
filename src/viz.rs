@@ -9,6 +9,7 @@ use std::str;
 
 use annotation;
 use glutil;
+use font;
 
 // Shader sources
 static VS_SRC: &'static str = include_str!("vs.glsl");
@@ -56,6 +57,7 @@ pub struct Visualizer<'a> {
     mouse_state : MouseState,
     dat : &'a [u8],
     annotation_store : Option<annotation::AnnotationStore>,
+    font : font::Font,
 }
 
 
@@ -112,6 +114,7 @@ impl<'a> Visualizer<'a> {
             gl::EnableVertexAttribArray(tex_attrib as GLuint);
             gl::VertexAttribPointer(tex_attrib, 2, gl::FLOAT, gl::FALSE,
                                     4*4, (2*4) as *const _);
+
         }
         let maxw : usize = 16384;
         let tw : usize = maxw;
@@ -127,7 +130,6 @@ impl<'a> Visualizer<'a> {
         annotation_d.resize(tw*th,0);
         let cloned_annot = annotation_d.clone();
         unsafe {
-            println!("T0 {} T1 {} ",gl::TEXTURE0, gl::TEXTURE1);
             gl::GenTextures(1, &mut texture);
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, texture);
@@ -148,7 +150,6 @@ impl<'a> Visualizer<'a> {
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::R8UI as GLint,
                            tw as GLsizei, th as GLsizei, 0,
                            gl::RED_INTEGER,gl::UNSIGNED_BYTE, cloned_annot.as_ptr() as *const GLvoid);
-            println!("Build textures {}, {}",texture, annotation_tex);
 
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, texture);
@@ -176,6 +177,7 @@ impl<'a> Visualizer<'a> {
             mouse_state : MouseState::new(),
             dat : dat,
             annotation_store : None,
+            font : font::Font::new(),
         };
         vz
     }
@@ -197,8 +199,14 @@ impl<'a> Visualizer<'a> {
     pub fn render(&mut self) {
         let size = self.window.get_size();
         unsafe {
+            gl::UseProgram(self.program);
             gl::ClearColor(0.5,0.0,0.0,1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            //gl::Clear(gl::COLOR_BUFFER_BIT);
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, self.texture);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
             
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
             gl::Uniform1ui(self.uniloc("bitstride"), self.stride);
@@ -221,10 +229,10 @@ impl<'a> Visualizer<'a> {
             None => String::new(),
         };
 
+        let location = (size.0 - self.font.width(text.as_str()),
+                       size.1 - self.font.height());
+        self.font.draw(size, location, text.as_str());
         self.window.swap_buffers();
-        //let location = (size.0 - self.font.width(text.as_str()),
-        //                size.1 - self.font.height());
-        //self.font.draw(&self.display, &mut target, size, location, text.as_str());
         // match bfc {
         //     Some(x) => match self.annotation_store {
         //         Some(ref store) => {
