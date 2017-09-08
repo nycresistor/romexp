@@ -43,8 +43,8 @@ fn main() {
 
     viz.window.make_current();
     glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
-    viz.render();
     while !viz.window.should_close() {
+        viz.render();
         glfw.poll_events();
         viz.handle_events();
     }

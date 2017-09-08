@@ -20,7 +20,7 @@ use std::collections::HashSet;
 pub struct MouseState {
     start_drag_pos : Option<(f64,f64)>,
     last_pos : (f64, f64),
-//    down : HashSet<glutin::MouseButton>,
+    down : HashSet<glfw::MouseButton>,
     start_ul_offset : (f32, f32),
 }
 
@@ -29,7 +29,7 @@ impl MouseState {
         MouseState { 
             start_drag_pos : None, 
             last_pos : (0.0, 0.0),
-//            down : HashSet::new(),
+            down : HashSet::new(),
             start_ul_offset : (0.0, 0.0),
         }
     }
@@ -83,6 +83,9 @@ impl<'a> Visualizer<'a> {
         gl::load_with(|s| window.get_proc_address(s) as *const _);
         let program = glutil::build_program(VS_SRC, FS_SRC).unwrap();
         window.set_key_polling(true);
+        window.set_cursor_pos_polling(true);
+        window.set_mouse_button_polling(true);
+        window.set_scroll_polling(true);
         let mut vbo : GLuint = 0;
         let mut ebo : GLuint = 0;
         let mut vao : GLuint = 0;
@@ -173,7 +176,6 @@ impl<'a> Visualizer<'a> {
     pub fn uniloc(&self, name : &str) -> GLint {
         let c_str = std::ffi::CString::new(name.as_bytes()).unwrap();
         let loc = unsafe { gl::GetUniformLocation(self.program, c_str.as_ptr()) };
-        println!("Found uniform {} at {}", name, loc);
         loc
     }
     
@@ -191,7 +193,7 @@ impl<'a> Visualizer<'a> {
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
             gl::Uniform1i(self.uniloc("romtex"), 0); //self.texture as i32);
             gl::Uniform1i(self.uniloc("annotex"), 1); //self.annotation_tex as i32);
-            gl::Uniform2i(self.uniloc("ul_offset"), self.ul_offset.0 as i32, self.ul_offset.1 as i32);
+            gl::Uniform2f(self.uniloc("ul_offset"), self.ul_offset.0, self.ul_offset.1);
             gl::Uniform1f(self.uniloc("zoom"),self.zoom);
 
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
@@ -261,16 +263,11 @@ impl<'a> Visualizer<'a> {
         self.zoom_to(z);
     }
 
-    // fn handle_mouse_scroll(&mut self, d : glutin::MouseScrollDelta) {
-    //     match d {
-    //         glutin::MouseScrollDelta::LineDelta(_,v) => {
-    //             let z = self.zoom * (1.1 as f32).powf(-v);
-    //             let pos = self.mouse_state.last_pos;
-    //             self.zoom_to_center(pos,if z >= 1.0 { z } else { 1.0 } );
-    //         },
-    //         _ => {}
-    //     }
-    // }
+    fn handle_scroll(&mut self, ydelta : f64) {
+        let z = self.zoom * (1.1 as f32).powf(ydelta as f32);
+        let pos = self.mouse_state.last_pos;
+        self.zoom_to_center(pos,if z >= 1.0 { z } else { 1.0 } );
+    }
 
     fn update_annotations(&mut self) {
         let maxw : usize = 16384;
@@ -313,12 +310,11 @@ impl<'a> Visualizer<'a> {
             _ => (),
         }
     }
-
+*/
     fn handle_mouse_move(&mut self, pos : (f64, f64) ) {
-        use self::glutin::MouseButton::*;
         self.mouse_state.last_pos = pos;
         if !self.mouse_state.down.is_empty() {
-            if self.mouse_state.down.contains(&Left) {
+            if self.mouse_state.down.contains(&glfw::MouseButtonLeft) {
                 let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
                 let drag_start = match self.mouse_state.start_drag_pos {
                     None => None, Some(x) => self.byte_from_coords(x),
@@ -327,7 +323,7 @@ impl<'a> Visualizer<'a> {
                     (Some(s), Some(e)) => self.set_selection(s * 8, e * 8), // *8 because bit index
                     _ => {},
                 }
-            } else if self.mouse_state.down.contains(&Middle) {
+            } else if self.mouse_state.down.contains(&glfw::MouseButtonMiddle) {
                 let (x1, y1) = self.mouse_state.start_drag_pos.unwrap();
                 let (x2, y2) = self.mouse_state.last_pos;
                 let (dx, dy) = (x2 - x1, y2 - y1);
@@ -337,7 +333,6 @@ impl<'a> Visualizer<'a> {
             }
         }
     }
-  */  
     
     fn byte_from_coords(&self, pos : (f64, f64) ) -> Option<u32> {
         // find (possibly off-screen) location of 0,0 in data.
@@ -356,17 +351,14 @@ impl<'a> Visualizer<'a> {
             if idx < self.data_len as u32 { Some(idx) } else { None }
         }
     }
-/*
-    fn handle_mouse_button(&mut self, state : glutin::ElementState, button : glutin::MouseButton ) {
-        use self::glutin::MouseButton::*;
-        use self::glutin::ElementState::*;
 
+    fn handle_mouse_button(&mut self, button : glfw::MouseButton, action : glfw::Action, modifiers : glfw::modifiers::Modifiers ) {
         match button {
-            Left => {
+            glfw::MouseButtonLeft => {
                 // No commit on mouse release; selection is updated during drag
             },
-            Middle => match state {
-                Pressed => {
+            glfw::MouseButtonMiddle => match action {
+                glfw::Action::Press => {
                     self.mouse_state.start_ul_offset = self.ul_offset;
                 },
                 _ => {},
@@ -374,29 +366,36 @@ impl<'a> Visualizer<'a> {
             _ => {},
         }
         
-        match state {
-            Pressed => {
+        match action {
+            glfw::Action::Press => {
                 self.mouse_state.down.insert(button);
                 self.mouse_state.start_drag_pos = Some(self.mouse_state.last_pos);
             },
-            Released => {
+            glfw::Action::Release => {
                 self.mouse_state.down.remove(&button);
                 self.mouse_state.start_drag_pos = None;
             },
+            _ => {},
         };
 
     }
-*/
 
                pub fn handle_events(&mut self) {
                    use glfw::{Action,Key};
-                   for (_,event) in glfw::flush_messages(&self.events) {
-                       match event {
-                           glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                               println!("got escape");
-                               self.window.set_should_close(true)
-                           }
-                           _ => {}
+                   loop {
+                       match self.events.recv_timeout(std::time::Duration::from_millis(1)) {
+                           Ok((_, event)) => match event {
+                               glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                                   println!("got escape");
+                                   self.window.set_should_close(true)
+                               }
+                               glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
+                               glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
+                               glfw::WindowEvent::Scroll(xdelta, ydelta) => self.handle_scroll(ydelta),
+
+                               _ => {}
+                           },
+                           _ => { break; }
                        }
                    }
                }

@@ -7,7 +7,6 @@ use std::str;
 pub fn attrib_loc(program : GLuint , name : &str) -> GLint {
     let c_str = std::ffi::CString::new(name.as_bytes()).unwrap();
     let loc = unsafe { gl::GetAttribLocation(program, c_str.as_ptr()) };
-    println!("Found {} at {}",name,loc);
     loc
 }
 
