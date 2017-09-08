@@ -126,7 +126,9 @@ impl<'a> Visualizer<'a> {
         annotation_d.resize(tw*th,0);
         let cloned_annot = annotation_d.clone();
         unsafe {
+            println!("T0 {} T1 {} ",gl::TEXTURE0, gl::TEXTURE1);
             gl::GenTextures(1, &mut texture);
+            gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, texture);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);            
@@ -136,12 +138,24 @@ impl<'a> Visualizer<'a> {
                            tw as GLsizei, th as GLsizei, 0,
                            gl::RED_INTEGER,gl::UNSIGNED_BYTE, d.as_ptr() as *const GLvoid);
             gl::GenTextures(1, &mut annotation_tex);
+            gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, annotation_tex);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);            
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, 0);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, 0);
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::R8UI as GLint,
                            tw as GLsizei, th as GLsizei, 0,
                            gl::RED_INTEGER,gl::UNSIGNED_BYTE, cloned_annot.as_ptr() as *const GLvoid);
             println!("Build textures {}, {}",texture, annotation_tex);
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, texture);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, annotation_tex);
+
         }
+
         
         let mut vz = Visualizer {
             window : window,
@@ -191,12 +205,11 @@ impl<'a> Visualizer<'a> {
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
             gl::Uniform2ui(self.uniloc("selection"), self.selection.0, self.selection.1);
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
-            gl::Uniform1i(self.uniloc("romtex"), 0); //self.texture as i32);
-            gl::Uniform1i(self.uniloc("annotex"), 1); //self.annotation_tex as i32);
+            gl::Uniform1i(self.uniloc("romtex"), 0 as i32); //self.texture as i32);
+            gl::Uniform1i(self.uniloc("annotex"), 1 as i32); //self.annotation_tex as i32);
             gl::Uniform2f(self.uniloc("ul_offset"), self.ul_offset.0, self.ul_offset.1);
             gl::Uniform1f(self.uniloc("zoom"),self.zoom);
 
-            gl::BindTexture(gl::TEXTURE_2D, self.texture);
             gl::BindVertexArray(self.vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }        
@@ -274,43 +287,38 @@ impl<'a> Visualizer<'a> {
         let tw : usize = maxw;
         let th : usize = (self.data_len + (maxw-1))/maxw;
         let cloned_annot = self.annotation_d.clone();
-        // let annotation_img = glium::texture::RawImage2d {
-        //     data : std::borrow::Cow::Borrowed(cloned_annot.as_slice()),
-        //     width : tw as u32,
-        //     height : th as u32,
-        //     format : glium::texture::ClientFormat::U8,
-        // };
-        // let annotation_tex = glium::texture::UnsignedTexture2d::with_mipmaps(&self.display, annotation_img, glium::texture::MipmapsOption::NoMipmap).unwrap();
-        // self.annotation_tex = annotation_tex;
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
+            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::R8UI as GLint,
+                tw as GLsizei, th as GLsizei, 0,
+                gl::RED_INTEGER,gl::UNSIGNED_BYTE, cloned_annot.as_ptr() as *const GLvoid);
+        }
     }
-/*
+
     // Handle keyboard input
-    fn handle_kb(&mut self, input : KeyboardInput) {
-        match input {
-            KeyboardInput { scancode:_, state:glutin::ElementState::Pressed,
-                            virtual_keycode:Some(vkeycode),modifiers:_ } =>
-                match vkeycode {
-                    glutin::VirtualKeyCode::Escape => self.closed = true,
-                    glutin::VirtualKeyCode::Right => self.zoom_in(),
-                    glutin::VirtualKeyCode::Left => self.zoom_out(),
-                    glutin::VirtualKeyCode::S => {
-                        use annotation::AnnotationEngine;
-                        let engine = annotation::CStringAnnotationEngine::new();
-                        let annotations = engine.build_annotations(self.dat);
-                        for annotation in annotations.iter() {
-                            for n in annotation.span().0 .. annotation.span().1 {
-                                self.annotation_d[n] = 0x66;
-                            }
-                        }
-                        self.annotation_store = Some(annotations);
-                        self.update_annotations();
-                    },
-                    _ => (),
-                },
+    fn handle_kb(&mut self, key : glfw::Key) {
+        use glfw::Key::*;
+        match key {
+            Escape => self.window.set_should_close(true),
+            Right => self.zoom_in(),
+            Left => self.zoom_out(),
+            S => {
+                use annotation::AnnotationEngine;
+                let engine = annotation::CStringAnnotationEngine::new();
+                let annotations = engine.build_annotations(self.dat);
+                for annotation in annotations.iter() {
+                    for n in annotation.span().0 .. annotation.span().1 {
+                        self.annotation_d[n] = 0x66;
+                    }
+                }
+                self.annotation_store = Some(annotations);
+                self.update_annotations();
+            },
             _ => (),
         }
     }
-*/
+
     fn handle_mouse_move(&mut self, pos : (f64, f64) ) {
         self.mouse_state.last_pos = pos;
         if !self.mouse_state.down.is_empty() {
@@ -385,10 +393,7 @@ impl<'a> Visualizer<'a> {
                    loop {
                        match self.events.recv_timeout(std::time::Duration::from_millis(1)) {
                            Ok((_, event)) => match event {
-                               glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                                   println!("got escape");
-                                   self.window.set_should_close(true)
-                               }
+                               glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
                                glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
                                glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
                                glfw::WindowEvent::Scroll(xdelta, ydelta) => self.handle_scroll(ydelta),

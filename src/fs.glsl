@@ -43,8 +43,11 @@ void main() {
     uint tex_off_y = tex_off / texwidth;
     uint rv = (texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r >> (7u-tex_bit_off)) & 1u;
     // get annotation
-    uint anno = (texelFetch(annotex, ivec2(int(tex_off_x),int(tex_off_y)),0).r);
+    uint anno = texelFetch(annotex, ivec2(int(tex_off_x),int(tex_off_y)),0).r;
     vec4 c = vec4(float(rv),float(rv+anno),float(rv), 1.0);
+    if (anno != 0u) { 
+        c.r = 0.0; 
+    }
     if (bitidx >= selection[0] && bitidx <= selection[1]+7u) {
         c.b = 0.0; c.g = 0.0;
     }
