@@ -54,3 +54,9 @@ pub fn build_program(vertex_shader_src : &str, fragment_shader_src : &str) -> Op
         }
     }
 }
+
+pub fn uniloc(program : GLuint, name : &str) -> GLint {
+    let c_str = std::ffi::CString::new(name.as_bytes()).unwrap();
+    let loc = unsafe { gl::GetUniformLocation(program, c_str.as_ptr()) };
+    loc
+}
