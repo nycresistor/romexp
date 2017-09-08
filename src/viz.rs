@@ -387,6 +387,17 @@ impl<'a> Visualizer<'a> {
 
     }
 */
+
+    pub fn handle_event(&mut self, event: glfw::WindowEvent) {
+        use glfw::{Action,Key};
+        match event {
+            glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                println!("got escape");
+                self.window.set_should_close(true)
+            }
+            _ => {}
+        }
+    }    
         
     pub fn handle_events(&mut self) {
         /*

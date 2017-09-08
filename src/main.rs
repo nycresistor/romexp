@@ -47,18 +47,8 @@ fn main() {
     while !viz.window.should_close() {
         glfw.poll_events();
         for (_, event) in glfw::flush_messages(&viz.events) {
-            handle_window_event(&mut viz.window, event);
+            viz.handle_event(event);
         }
     }
 }
-
-fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
-    match event {
-        glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-            println!("got escape");
-            window.set_should_close(true)
-        }
-        _ => {}
-    }
-}    
 
