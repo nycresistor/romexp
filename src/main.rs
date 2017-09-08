@@ -46,9 +46,7 @@ fn main() {
     viz.render();
     while !viz.window.should_close() {
         glfw.poll_events();
-        for (_, event) in glfw::flush_messages(&viz.events) {
-            viz.handle_event(event);
-        }
+        viz.handle_events();
     }
 }
 

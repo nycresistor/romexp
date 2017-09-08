@@ -388,18 +388,20 @@ impl<'a> Visualizer<'a> {
     }
 */
 
-    pub fn handle_event(&mut self, event: glfw::WindowEvent) {
-        use glfw::{Action,Key};
-        match event {
-            glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                println!("got escape");
-                self.window.set_should_close(true)
-            }
-            _ => {}
-        }
-    }    
+               pub fn handle_events(&mut self) {
+                   use glfw::{Action,Key};
+                   for (_,event) in glfw::flush_messages(&self.events) {
+                       match event {
+                           glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                               println!("got escape");
+                               self.window.set_should_close(true)
+                           }
+                           _ => {}
+                       }
+                   }
+               }
+                        
         
-    pub fn handle_events(&mut self) {
         /*
         let mut evec : Vec<glium::glutin::Event> = Vec::new();
         self.events.poll_events(|event| { evec.push(event); });
@@ -417,5 +419,4 @@ impl<'a> Visualizer<'a> {
             }
         };
 */
-    }
 }
