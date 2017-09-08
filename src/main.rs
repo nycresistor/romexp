@@ -14,7 +14,8 @@ use std::str;
 mod annotation;
 mod viz;
 mod font;
-        
+mod glutil;
+
 use glfw::{Action, Context, Key};
 
 fn main() {
@@ -38,22 +39,10 @@ fn main() {
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     let mut viz = viz::Visualizer::new(&mut glfw, (512, 512), unsafe { rom.as_slice() });
-    // viz.set_stride(8);
     viz.set_selection(800,1600);
-    // while !viz.closed {
-    //     viz.render();
-    //     viz.handle_events();
-    // }
-    glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
-    // let (mut window, events) = glfw.create_window(300, 300, "Hello this is window 1", glfw::WindowMode::Windowed)
-    //     .expect("Failed to create GLFW window.");
 
-    // let (mut window2, events2) = glfw.create_window(300, 300, "Hello this is window 2", glfw::WindowMode::Windowed)
-    //     .expect("Failed to create GLFW window.");
-
-    // window.set_key_polling(true);
-    // window2.set_key_polling(true);
     viz.window.make_current();
+    glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
     viz.render();
     while !viz.window.should_close() {
         glfw.poll_events();

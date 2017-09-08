@@ -8,6 +8,7 @@ use std;
 use std::str;
 
 use annotation;
+use glutil;
 
 // Shader sources
 static VS_SRC: &'static str = include_str!("vs.glsl");
@@ -57,50 +58,6 @@ pub struct Visualizer<'a> {
     annotation_store : Option<annotation::AnnotationStore>,
 }
 
-fn build_shader(src : &str, shader_type : GLenum) -> Option<GLuint> {
-    unsafe {
-        let shader = gl::CreateShader(shader_type);
-        let src_cstr = std::ffi::CString::new(src.as_bytes()).unwrap();
-        gl::ShaderSource(shader, 1, &src_cstr.as_ptr(), std::ptr::null());
-        gl::CompileShader(shader);
-        let mut compiled : GLint = 0;
-        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut compiled);
-        if compiled == gl::TRUE as GLint {
-            Some(shader)
-        } else {
-            gl::DeleteShader(shader);
-            None
-        }
-    }
-}
-
-fn build_program(vertex_shader_src : &str, fragment_shader_src : &str) -> Option<GLuint> {
-    unsafe {
-        let program = gl::CreateProgram();
-        match (build_shader(vertex_shader_src, gl::VERTEX_SHADER),
-               build_shader(fragment_shader_src, gl::FRAGMENT_SHADER)) {
-            (Some(vs), Some(fs)) => {
-                gl::AttachShader(program, vs);
-                gl::AttachShader(program, fs);
-                gl::LinkProgram(program);
-                gl::DeleteShader(vs);
-                gl::DeleteShader(fs);
-                let mut linked : GLint = 0;
-                gl::GetProgramiv(program, gl::LINK_STATUS, &mut linked);
-                if linked == gl::TRUE as GLint {
-                    Some(program)
-                } else {
-                    gl::DeleteProgram(program);
-                    None
-                }
-            },
-            _ => {
-                gl::DeleteProgram(program);
-                None
-            }
-        }
-    }
-}
 
 const VERTICES : [GLfloat; 16] = [
     -1.0,  1.0,    0.0, 1.0,
@@ -124,7 +81,7 @@ impl<'a> Visualizer<'a> {
                                                       glfw::WindowMode::Windowed)
             .expect("Failed to create GLFW window.");
         gl::load_with(|s| window.get_proc_address(s) as *const _);
-        let program = build_program(VS_SRC, FS_SRC).unwrap();
+        let program = glutil::build_program(VS_SRC, FS_SRC).unwrap();
         window.set_key_polling(true);
         let mut vbo : GLuint = 0;
         let mut ebo : GLuint = 0;
@@ -143,21 +100,11 @@ impl<'a> Visualizer<'a> {
             gl::BindFragDataLocation(program, 0,
                                      std::ffi::CString::new("color").unwrap().as_ptr());
             
-        }
-
-        fn get_attrib_location(program : GLuint , name : &str) -> GLint {
-            let c_str = std::ffi::CString::new(name.as_bytes()).unwrap();
-            let loc = unsafe { gl::GetAttribLocation(program, c_str.as_ptr()) };
-            println!("Found {} at {}",name,loc);
-            loc
-        }
-        use std::mem;
-        unsafe {
-            let pos_attrib = get_attrib_location(program,"position") as GLuint;
+            let pos_attrib = glutil::attrib_loc(program,"position") as GLuint;
             gl::EnableVertexAttribArray(pos_attrib);
             gl::VertexAttribPointer(pos_attrib, 2, gl::FLOAT, gl::FALSE,
                                     4*4, std::ptr::null());
-            let tex_attrib = get_attrib_location(program,"tex_coords") as GLuint;
+            let tex_attrib = glutil::attrib_loc(program,"tex_coords") as GLuint;
             gl::EnableVertexAttribArray(tex_attrib as GLuint);
             gl::VertexAttribPointer(tex_attrib, 2, gl::FLOAT, gl::FALSE,
                                     4*4, (2*4) as *const _);
@@ -189,7 +136,7 @@ impl<'a> Visualizer<'a> {
             gl::BindTexture(gl::TEXTURE_2D, annotation_tex);
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::R8UI as GLint,
                            tw as GLsizei, th as GLsizei, 0,
-                           gl::RED_INTEGER,gl::UNSIGNED_BYTE, cloned_annot.as_ptr() as *const c_void);
+                           gl::RED_INTEGER,gl::UNSIGNED_BYTE, cloned_annot.as_ptr() as *const GLvoid);
             println!("Build textures {}, {}",texture, annotation_tex);
         }
         
