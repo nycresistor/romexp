@@ -86,6 +86,7 @@ impl<'a> Visualizer<'a> {
         window.set_cursor_pos_polling(true);
         window.set_mouse_button_polling(true);
         window.set_scroll_polling(true);
+        window.set_size_polling(true);
         let mut vbo : GLuint = 0;
         let mut ebo : GLuint = 0;
         let mut vao : GLuint = 0;
@@ -397,6 +398,7 @@ impl<'a> Visualizer<'a> {
                                glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
                                glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
                                glfw::WindowEvent::Scroll(xdelta, ydelta) => self.handle_scroll(ydelta),
+                               glfw::WindowEvent::Size(x,y) => unsafe { gl::Viewport(0,0,x,y); },
 
                                _ => {}
                            },
@@ -406,21 +408,4 @@ impl<'a> Visualizer<'a> {
                }
                         
         
-        /*
-        let mut evec : Vec<glium::glutin::Event> = Vec::new();
-        self.events.poll_events(|event| { evec.push(event); });
-        for event in evec {
-            match event {
-                glutin::Event::WindowEvent { event, .. } => match event {
-                    glutin::WindowEvent::Closed => self.closed = true,
-                    glutin::WindowEvent::KeyboardInput {input , ..} => self.handle_kb(input),
-                    glutin::WindowEvent::MouseMoved {position, .. } => self.handle_mouse_move(position),
-                    glutin::WindowEvent::MouseWheel {delta, .. } =>self.handle_mouse_scroll(delta),
-                    glutin::WindowEvent::MouseInput {state, button, .. } => self.handle_mouse_button(state,button),
-                    _ => ()
-                },
-                _ => (),
-            }
-        };
-*/
 }
