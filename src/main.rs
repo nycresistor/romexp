@@ -45,7 +45,7 @@ fn main() {
     glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
     while !viz.window.should_close() {
         viz.render();
-        glfw.poll_events();
+        glfw.wait_events();
         viz.handle_events();
     }
 }

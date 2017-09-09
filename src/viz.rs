@@ -232,22 +232,22 @@ impl<'a> Visualizer<'a> {
         let location = (size.0 - self.font.width(text.as_str()),
                        size.1 - self.font.height());
         self.font.draw(size, location, text.as_str());
+        match bfc {
+            Some(x) => match self.annotation_store {
+                Some(ref store) => {
+                    let annos = store.query(x as usize);
+                    let y = 0;
+                    for a in annos {
+                        let s = a.comments();
+                        let location = (size.0.saturating_sub(self.font.width(s)), y);
+                        self.font.draw(size, location, s);
+                    }
+                },
+                None => {}
+            },
+            None => {}
+        }
         self.window.swap_buffers();
-        // match bfc {
-        //     Some(x) => match self.annotation_store {
-        //         Some(ref store) => {
-        //             let annos = store.query(x as usize);
-        //             let y = 0;
-        //             for a in annos {
-        //                 let s = a.comments();
-        //                 let location = (size.0.saturating_sub(self.font.width(s)), y);
-        //                 self.font.draw(&self.display, &mut target, size, location, s);
-        //             }
-        //         },
-        //         None => {}
-        //     },
-        //     None => {}
-        // }
     }
 
     fn zoom_to_center(&mut self, cursor : (f64, f64), z : f32) {
@@ -400,7 +400,7 @@ impl<'a> Visualizer<'a> {
                pub fn handle_events(&mut self) {
                    use glfw::{Action,Key};
                    loop {
-                       match self.events.recv_timeout(std::time::Duration::from_millis(1)) {
+                       match self.events.try_recv() {
                            Ok((_, event)) => match event {
                                glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
                                glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
