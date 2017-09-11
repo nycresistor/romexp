@@ -310,8 +310,16 @@ impl<'a> Visualizer<'a> {
         use glfw::Key::*;
         match key {
             Escape => self.window.set_should_close(true),
-            Right => self.zoom_in(),
-            Left => self.zoom_out(),
+            Up => self.zoom_in(),
+            Down => self.zoom_out(),
+            Right => {
+                let s = self.stride + 8;
+                self.set_stride(s);
+            },
+            Left => {
+                let s = self.stride - 8;
+                self.set_stride(if s < 8 { 8 } else { s });
+            },
             S => {
                 use annotation::AnnotationEngine;
                 let engine = annotation::CStringAnnotationEngine::new();
@@ -364,7 +372,9 @@ impl<'a> Visualizer<'a> {
         } else {
             let column = x as u32/self.stride;
             let row = y as u32;
-            let idx = column * self.col_height + row;
+            let col_byte_w = self.stride/8;
+            let boff = (x as u32 % self.stride)/8;
+            let idx = (column * self.col_height * col_byte_w) + (row * col_byte_w) + boff;
             if idx < self.data_len as u32 { Some(idx) } else { None }
         }
     }
