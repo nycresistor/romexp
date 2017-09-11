@@ -14,7 +14,6 @@ pub struct Font {
     program : GLuint,
     zoom_factor : f32,
     vbo : GLuint,
-    ebo : GLuint,
     vao : GLuint,
 }
 
@@ -68,18 +67,33 @@ impl Font {
                            gl::RED_INTEGER,gl::UNSIGNED_BYTE, 
                            bytes.as_ptr() as *const _);
         }
-        println!("vao {} vbo {} ebo {}", vao, vbo, ebo);
         Font {
             program : program,
             zoom_factor : 2.0,
             vbo : vbo,
-            ebo : ebo,
             vao : vao,
         }
     }
 
-    pub fn width(&self,text:&str) -> i32 { (self.zoom_factor*8.0*text.len() as f32) as i32 }
-    pub fn height(&self) -> i32 { (self.zoom_factor*10.0) as i32 }
+    pub fn size(&self,text:&str) -> (f32, f32) {
+        let mut w : f32 = 0.0;
+        let mut maxw : f32 = 0.0;
+        let cw = 8.0 * self.zoom_factor;
+        let ch = 10.0 * self.zoom_factor;
+        let mut h = ch;
+        for c in text.bytes() {
+            match c {
+                b'\r' => {},
+                b'\0' => {},
+                b'\n' => { maxw = maxw.max(w); w = 0.0; h = h + ch; }
+                _ => { w = w + cw; }
+            }
+        }
+        (maxw.max(w),h)
+    }
+
+    pub fn width(&self,text:&str) -> i32 { self.size(text).0 as i32 }
+    pub fn height(&self,text:&str) -> i32 { self.size(text).1 as i32 }
 
     pub fn draw(&self, 
                 window_size : (i32, i32),
@@ -92,7 +106,7 @@ impl Font {
         let cw = self.zoom_factor * 8.0 * pw;
         let ch = self.zoom_factor * 10.0 * ph;
         let mut x = -1.0 + (text_pos.0 as f32 * pw);
-        let y = (1.0 - ch) - (text_pos.1 as f32 * ph);
+        let mut y = (1.0 - ch) - (text_pos.1 as f32 * ph);
 
         unsafe {
             gl::UseProgram(self.program);
@@ -103,6 +117,15 @@ impl Font {
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
         }
         for b in text.as_bytes() {
+            match *b {
+                0x0D => { continue; },
+                0x0A => { 
+                    x = -1.0 + (text_pos.0 as f32 * pw);
+                    y = y - ch;
+                    continue;
+                },
+                _ => {}
+            }
             let tex_left = charw * *b as f32;
 
             // Two triangles to cover the character

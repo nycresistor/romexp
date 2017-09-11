@@ -37,7 +37,7 @@ impl MouseState {
 }
 
 pub struct Visualizer<'a> {
-    pub window : glfw::Window,
+    pub window : Window,
     pub events : std::sync::mpsc::Receiver<(f64, WindowEvent)>,
     program : GLuint,
     vao : GLuint,
@@ -72,8 +72,6 @@ const INDICES : [GLuint; 6] = [
     0, 1, 2,
     0, 3, 2,
 ];
-
-use std::os::raw::c_void;
 
 impl<'a> Visualizer<'a> {
         
@@ -159,7 +157,7 @@ impl<'a> Visualizer<'a> {
         }
 
         
-        let mut vz = Visualizer {
+        Visualizer {
             window : window,
             events : events,
             program : program,
@@ -178,8 +176,7 @@ impl<'a> Visualizer<'a> {
             dat : dat,
             annotation_store : None,
             font : font::Font::new(),
-        };
-        vz
+        }
     }
     
     pub fn set_selection(&mut self, start : u32, finish : u32) {
@@ -229,8 +226,9 @@ impl<'a> Visualizer<'a> {
             None => String::new(),
         };
 
-        let location = (size.0 - self.font.width(text.as_str()),
-                       size.1 - self.font.height());
+        let text_sz = self.font.size(text.as_str());
+        let location = (size.0 - text_sz.0 as i32,
+                       size.1 - text_sz.1 as i32);
         self.font.draw(size, location, text.as_str());
         match bfc {
             Some(x) => match self.annotation_store {
@@ -408,14 +406,14 @@ impl<'a> Visualizer<'a> {
     }
 
                pub fn handle_events(&mut self) {
-                   use glfw::{Action,Key};
+                   use glfw::Action;
                    loop {
                        match self.events.try_recv() {
                            Ok((_, event)) => match event {
                                glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
                                glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
                                glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
-                               glfw::WindowEvent::Scroll(xdelta, ydelta) => self.handle_scroll(ydelta),
+                               glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
                                glfw::WindowEvent::Size(x,y) => unsafe { gl::Viewport(0,0,x,y); },
 
                                _ => {}

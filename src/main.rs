@@ -1,7 +1,5 @@
 extern crate clap;
 extern crate memmap;
-#[macro_use]
-extern crate glium;
 extern crate glfw;
 extern crate gl;
 
