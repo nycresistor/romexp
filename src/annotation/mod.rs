@@ -101,7 +101,7 @@ impl AnnotationEngine for CStringAnnotationEngine {
                 match start {
                     None => (),
                     Some(w) if idx-w > min_str_len => {
-                        let v : Vec<u8> = raw_data[w..idx+1].to_vec();
+                        let v : Vec<u8> = raw_data[w..idx].to_vec();
                         let a = CStringAnnotation
                         { start : w,
                           end : idx+1,
