@@ -48,7 +48,7 @@ void main() {
     if (anno != 0u) { 
         c.r = 0.0; 
     }
-    if (bitidx >= selection[0] && bitidx <= selection[1]+7u) {
+    if (selection[0] != selection[1] && bitidx >= selection[0] && bitidx <= selection[1]+7u) {
         c.b = 0.0; c.g = 0.0;
     }
     color = c;
