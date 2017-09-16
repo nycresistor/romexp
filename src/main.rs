@@ -1,7 +1,8 @@
-extern crate clap;
 extern crate memmap;
 extern crate glfw;
 extern crate gl;
+#[macro_use]
+extern crate clap;
 
 use clap::{Arg,App};
 
@@ -21,6 +22,12 @@ fn main() {
         .version("0.1")
         .author("phooky@gmail.com")
         .about("Quickly analyze ROM dumps and other binary blobs")
+        .arg(Arg::with_name("stride")
+             .help("Starting stride in bytes")
+             .short("s")
+             .long("stride")
+             .takes_value(true)
+             .default_value("1"))
         .arg(Arg::with_name("ROM")
             .help("ROM file to analyze")
             .required(true))
@@ -31,14 +38,13 @@ fn main() {
         Ok(r) => r,
         Err(e) => { println!("Could not open {}: {}",rom_path,e); return; },
     };
-    
+    let stride = value_t_or_exit!(matches,"stride",u32) * 8;
     println!("Opened {}; size {} bytes",rom_path,rom.len());
 
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     let mut viz = viz::Visualizer::new(&mut glfw, (512, 512), unsafe { rom.as_slice() });
-    viz.set_selection(800,1600);
-
+    viz.set_stride(stride);
     viz.window.make_current();
     glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
     while !viz.window.should_close() {
