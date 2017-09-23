@@ -6,4 +6,4 @@
 * persistent settings
 * magic number annotator?
 * pop out selected data or annotation
-* single click to clear selection or select annotation
+* single click to clear selection [DONE] or select annotation [still todo]

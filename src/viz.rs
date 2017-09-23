@@ -21,6 +21,7 @@ use std::collections::HashSet;
 pub struct MouseState {
     start_drag_pos : Option<(f64,f64)>,
     last_pos : (f64, f64),
+    moved : bool, //< Whether we've actually dragged or just clicked
     down : HashSet<glfw::MouseButton>,
     start_ul_offset : (f32, f32),
 }
@@ -30,6 +31,7 @@ impl MouseState {
         MouseState { 
             start_drag_pos : None, 
             last_pos : (0.0, 0.0),
+            moved : false,
             down : HashSet::new(),
             start_ul_offset : (0.0, 0.0),
         }
@@ -335,6 +337,7 @@ impl<'a> Visualizer<'a> {
     }
 
     fn handle_mouse_move(&mut self, pos : (f64, f64) ) {
+        if self.mouse_state.last_pos != pos { self.mouse_state.moved = true; }
         self.mouse_state.last_pos = pos;
         if !self.mouse_state.down.is_empty() {
             if self.mouse_state.down.contains(&glfw::MouseButtonLeft) {
@@ -379,8 +382,12 @@ impl<'a> Visualizer<'a> {
 
     fn handle_mouse_button(&mut self, button : glfw::MouseButton, action : glfw::Action, modifiers : glfw::modifiers::Modifiers ) {
         match button {
-            glfw::MouseButtonLeft => {
-                // No commit on mouse release; selection is updated during drag
+            glfw::MouseButtonLeft => match action {
+                glfw::Action::Release if !self.mouse_state.moved => {
+                    // user clicked rather than dragged; deselect
+                    self.set_selection(0,0);
+                },
+                _ => {},
             },
             glfw::MouseButtonMiddle => match action {
                 glfw::Action::Press => {
@@ -394,6 +401,8 @@ impl<'a> Visualizer<'a> {
         match action {
             glfw::Action::Press => {
                 self.mouse_state.down.insert(button);
+                self.mouse_state.moved = false;
+                self.mouse_state.last_pos = self.window.get_cursor_pos();
                 self.mouse_state.start_drag_pos = Some(self.mouse_state.last_pos);
             },
             glfw::Action::Release => {
