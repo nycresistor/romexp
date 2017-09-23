@@ -414,7 +414,10 @@ impl<'a> Visualizer<'a> {
                                glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
                                glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
                                glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
-                               glfw::WindowEvent::Size(x,y) => unsafe { gl::Viewport(0,0,x,y); },
+                               glfw::WindowEvent::Size(x,y) => {
+                                   self.col_height = y as u32;
+                                   unsafe { gl::Viewport(0,0,x,y); }
+                               },
 
                                _ => {}
                            },
