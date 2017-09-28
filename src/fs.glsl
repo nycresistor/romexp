@@ -14,14 +14,16 @@ uniform uint texwidth;
 uniform usampler2D romtex;
 uniform usampler2D annotex;
 
+/// zoom factor (2.0 = 2x)
 uniform float zoom;
+/// offset of upper left hand corner in pixels at the current zoom level
 uniform vec2 ul_offset;
 
 void main() {
      vec2 fc = vec2( v_tex_coords[0] * float(win[2]),
                      (1.0 - v_tex_coords[1]) * float(win[3]));
      fc = (fc + ul_offset) / zoom;
-     // absolute coordinates in bitmap
+     // fc is now absolute coordinates in bitmap
      if (fc[0] < 0 || fc[1] < 0) {
      	color = vec4(0.0,0.0,0.4,1.0);
 	return;
