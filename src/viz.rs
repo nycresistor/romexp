@@ -225,6 +225,7 @@ impl<'a> Visualizer<'a> {
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }
         // Draw panel
+        self.panel.render(size);
         // STRATEGY: Toss panel clearing into font.rs
         // Overlay text w/ transparency
         // add color param to font calls
