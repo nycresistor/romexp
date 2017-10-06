@@ -238,7 +238,7 @@ impl<'a> Visualizer<'a> {
         let text_sz = self.font.size(text.as_str());
         let location = (size.0 - text_sz.0 as i32,
                        size.1 - text_sz.1 as i32);
-        self.font.draw(size, location, text.as_str());
+        //self.font.draw(size, location, text.as_str());
         match bfc {
             Some(x) => match self.annotation_store {
                 Some(ref store) => {
@@ -247,7 +247,7 @@ impl<'a> Visualizer<'a> {
                     for a in annos {
                         let s = a.comments();
                         let location = (size.0.saturating_sub(self.font.width(s)), y);
-                        self.font.draw(size, location, s);
+                        //self.font.draw(size, location, s);
                     }
                 },
                 None => {}

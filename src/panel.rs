@@ -4,8 +4,8 @@ use glutil;
 use std;
 
 // Shader sources
-static VS_SRC: &'static str = include_str!("fontvs.glsl");
-static FS_SRC: &'static str = include_str!("fontfs.glsl");
+static VS_SRC: &'static str = include_str!("panelvs.glsl");
+static FS_SRC: &'static str = include_str!("panelfs.glsl");
 
 pub struct Panel {
 	panel_width_px : u32,
@@ -31,7 +31,7 @@ impl Panel {
         let mut vao : GLuint = 0;
 
         let program = glutil::build_program(VS_SRC, FS_SRC)
-            .expect("Failed to create font shader program");
+            .expect("Failed to create panel shader program");
         unsafe {
             gl::GenVertexArrays(1,&mut vao);
             gl::BindVertexArray(vao);
@@ -102,7 +102,7 @@ impl Panel {
         	1.0, -1.0,  u1, v1,
         	x0, -1.0,   u0, v1,
         ];
-        //println!("x1 {} y1 {} x2 {} y2 {}",vertices[0], vertices[13],vertices[4],vertices[5]);
+        println!("x1 {} y1 {} x2 {} y2 {}",u0,v0,u1,v1);
         unsafe {
             gl::BindVertexArray(self.vao);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
@@ -115,6 +115,9 @@ impl Panel {
 		self.update_size(size);
 		unsafe {
             gl::UseProgram(self.program);
+            gl::Uniform4f(glutil::uniloc(self.program,"in_color"), 0.0,1.0,0.0,0.9);
+            gl::Uniform1i(glutil::uniloc(self.program,"tex"), 2);
+            gl::ActiveTexture(gl::TEXTURE2);
             gl::BindVertexArray(self.vao);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
