@@ -10,6 +10,7 @@ use std::str;
 use annotation;
 use glutil;
 use font;
+use panel;
 
 // Shader sources
 static VS_SRC: &'static str = include_str!("vs.glsl");
@@ -60,6 +61,7 @@ pub struct Visualizer<'a> {
     dat : &'a [u8],
     annotation_store : Option<annotation::AnnotationStore>,
     font : font::Font,
+    panel : panel::Panel,
 }
 
 
@@ -178,6 +180,7 @@ impl<'a> Visualizer<'a> {
             dat : dat,
             annotation_store : None,
             font : font::Font::new(),
+            panel : panel::Panel::new(200, (size.0 as i32, size.1 as i32)),
         }
     }
     
@@ -220,8 +223,11 @@ impl<'a> Visualizer<'a> {
 
             gl::BindVertexArray(self.vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
-        }        
-            
+        }
+        // Draw panel
+        // STRATEGY: Toss panel clearing into font.rs
+        // Overlay text w/ transparency
+        // add color param to font calls
         let bfc = self.byte_from_coords(self.mouse_state.last_pos);
         let text = match bfc {
             Some(x) => format!("0x{:x}",x),
@@ -414,26 +420,24 @@ impl<'a> Visualizer<'a> {
 
     }
 
-               pub fn handle_events(&mut self) {
-                   use glfw::Action;
-                   loop {
-                       match self.events.try_recv() {
-                           Ok((_, event)) => match event {
-                               glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
-                               glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
-                               glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
-                               glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
-                               glfw::WindowEvent::Size(x,y) => {
-                                   self.col_height = y as u32;
-                                   unsafe { gl::Viewport(0,0,x,y); }
-                               },
-
-                               _ => {}
-                           },
-                           _ => { break; }
-                       }
-                   }
-               }
-                        
+    pub fn handle_events(&mut self) {
+        use glfw::Action;
+        loop {
+            match self.events.try_recv() {
+                Ok((_, event)) => match event {
+                    glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
+                    glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
+                    glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
+                    glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
+                    glfw::WindowEvent::Size(x,y) => {
+                        self.col_height = y as u32;
+                        unsafe { gl::Viewport(0,0,x,y); }
+                    },
+                    _ => {}
+                },
+                _ => { break; }
+            }
+        }
+    }                    
         
 }

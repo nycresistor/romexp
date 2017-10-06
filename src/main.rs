@@ -14,6 +14,7 @@ mod annotation;
 mod viz;
 mod font;
 mod glutil;
+mod panel;
 
 use glfw::{Action, Context, Key};
 
