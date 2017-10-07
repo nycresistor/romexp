@@ -102,8 +102,10 @@ impl Panel {
         	1.0, -1.0,  u1, v1,
         	x0, -1.0,   u0, v1,
         ];
-        println!("x1 {} y1 {} x2 {} y2 {}",u0,v0,u1,v1);
+        //println!("x1 {} y1 {} x2 {} y2 {}",u0,v0,u1,v1);
         unsafe {
+            gl::UseProgram(self.program);
+            gl::Uniform4f(glutil::uniloc(self.program,"bounds"), 0.0,0.0,n as GLfloat,m as GLfloat);
             gl::BindVertexArray(self.vao);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
         	gl::BufferData(gl::ARRAY_BUFFER, 4*16, vertices.as_ptr() as *const _, gl::STATIC_DRAW);
