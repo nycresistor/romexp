@@ -425,6 +425,7 @@ impl<'a> Visualizer<'a> {
                        match self.events.try_recv() {
                            Ok((_, event)) => match event {
                                glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
+                               glfw::WindowEvent::Key(key, _, Action::Repeat, _) => self.handle_kb(key),
                                glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
                                glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
                                glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
