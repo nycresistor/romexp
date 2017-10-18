@@ -9,6 +9,7 @@ use clap::{Arg,App};
 use memmap::{Mmap, Protection};
 
 use std::str;
+use std::cmp;
 
 mod annotation;
 mod viz;
@@ -41,9 +42,14 @@ fn main() {
     let stride = value_t_or_exit!(matches,"stride",u32) * 8;
     println!("Opened {}; size {} bytes",rom_path,rom.len());
 
+    let height = 512;
+    let spacing = 4; // default spacing in px
+    let bytes_per_column = (stride/8)*height;
+    let columns = rom.len() as u32 / bytes_per_column;
+    let width = cmp::max(512,(columns*(stride+spacing)));
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-    let mut viz = viz::Visualizer::new(&mut glfw, (512, 512), unsafe { rom.as_slice() });
+    let mut viz = viz::Visualizer::new(&mut glfw, (width, height), unsafe { rom.as_slice() });
     viz.set_stride(stride);
     viz.window.make_current();
     glfw.set_swap_interval(glfw::SwapInterval::Sync(1));

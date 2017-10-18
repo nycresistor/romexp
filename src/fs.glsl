@@ -6,6 +6,7 @@ out vec4 color;
 uniform uvec4 win;
 uniform uint bitstride;
 uniform uint colstride;
+uniform uint spacing;
 uniform uint datalen;
 
 uniform uvec2 selection;
@@ -29,9 +30,14 @@ void main() {
 	return;
      }
      uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
-     uint col = ac.x / bitstride;
+     uint col = ac.x / (bitstride + spacing);
      uint row = ac.y;
      
+     if (ac.x % (bitstride+spacing) >= bitstride) { 
+        color = vec4(0.0,0.0,0.4,1.0);
+        return;
+     }
+
      uint bitidx = col * colstride + row * bitstride + ac.x % bitstride;
      
      uint tex_off = bitidx / 8u;

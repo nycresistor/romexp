@@ -48,6 +48,8 @@ pub struct Visualizer<'a> {
     stride : u32,
     /// height, in rows, of each colum
     col_height : u32,
+    /// spacing, in pixels, between columns
+    spacing : u32,
     /// start and end of current selection, as byte idx
     selection : (u32, u32),
     texture : GLuint,
@@ -167,6 +169,7 @@ impl<'a> Visualizer<'a> {
             data_len : dat.len(),
             stride : 8,
             col_height : 512,
+            spacing : 4,
             selection : (0,0),
             texture : texture,
             annotation_tex : annotation_tex,
@@ -210,6 +213,7 @@ impl<'a> Visualizer<'a> {
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
             gl::Uniform1ui(self.uniloc("bitstride"), self.stride);
             gl::Uniform1ui(self.uniloc("colstride"), self.stride*self.col_height);
+            gl::Uniform1ui(self.uniloc("spacing"), self.spacing);
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
             gl::Uniform2ui(self.uniloc("selection"), self.selection.0, self.selection.1);
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
@@ -371,10 +375,11 @@ impl<'a> Visualizer<'a> {
         {
             None
         } else {
-            let column = x as u32/self.stride;
+            let column = x as u32/(self.stride + self.spacing);
             let row = y as u32;
             let col_byte_w = self.stride/8;
-            let boff = (x as u32 % self.stride)/8;
+            let mut boff = (x as u32 % (self.stride + self.spacing))/8;
+            if (boff >= self.stride) { boff = self.stride -1; }
             let idx = (column * self.col_height * col_byte_w) + (row * col_byte_w) + boff;
             if idx < self.data_len as u32 { Some(idx) } else { None }
         }
