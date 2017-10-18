@@ -10,7 +10,7 @@ uniform vec4 bounds;
 void main() {
 	if (v_tex_coords.x < bounds.x || v_tex_coords.y < bounds.y ||
 		v_tex_coords.x >= bounds.z || v_tex_coords.y >= bounds.a) {
-		color = vec4(0.0,0.0,1.0,1.0);
+		color = vec4(0.0,0.0,0.0,1.0);
 		return;
 	}
     float cx, cy;
@@ -26,6 +26,6 @@ void main() {
     if (rv > 0.0) {
         color = vec4(in_color.rgb, 1.0);
     } else {
-        color = vec4(0.0,0.1,0.0,in_color.a);
+        color = vec4(0.0,0.0,0.0,in_color.a);
     }
 }
