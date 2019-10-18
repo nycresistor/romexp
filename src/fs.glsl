@@ -8,6 +8,7 @@ uniform uint bitstride;
 uniform uint colstride;
 uniform uint spacing;
 uniform uint datalen;
+uniform bool swap_endian;
 
 uniform uvec2 selection;
 uniform uint texwidth;
@@ -39,10 +40,13 @@ void main() {
      }
 
      uint bitidx = col * colstride + row * bitstride + ac.x % bitstride;
-     
      uint tex_off = bitidx / 8u;
      uint tex_bit_off = bitidx % 8u;
      
+     if (swap_endian == true) {
+        uint bytes = bitstride / 8u;
+        tex_off = ((tex_off / bytes) * bytes) + (bytes - (1u+(tex_off % bytes)));
+     } 
      if (row >= (colstride/bitstride) || tex_off >= datalen) {
      	color = vec4(0.0,0.0,0.4,1.0);
      	return;

@@ -46,6 +46,7 @@ pub struct Visualizer<'a> {
     data_len : usize,
     /// width, in bits, of each column
     stride : u32,
+    swap_endian : bool,
     /// height, in rows, of each colum
     col_height : u32,
     /// spacing, in pixels, between columns
@@ -168,6 +169,7 @@ impl<'a> Visualizer<'a> {
             vao : vao,
             data_len : dat.len(),
             stride : 8,
+            swap_endian : false,
             col_height : 512,
             spacing : 4,
             selection : (0,0),
@@ -192,6 +194,10 @@ impl<'a> Visualizer<'a> {
         self.stride = stride;
     }
 
+    pub fn set_spacing(&mut self, spacing : u32) {
+        self.spacing = spacing;
+    }
+
     pub fn uniloc(&self, name : &str) -> GLint {
         let c_str = std::ffi::CString::new(name.as_bytes()).unwrap();
         let loc = unsafe { gl::GetUniformLocation(self.program, c_str.as_ptr()) };
@@ -213,6 +219,7 @@ impl<'a> Visualizer<'a> {
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
             gl::Uniform1ui(self.uniloc("bitstride"), self.stride);
             gl::Uniform1ui(self.uniloc("colstride"), self.stride*self.col_height);
+            gl::Uniform1ui(self.uniloc("swap_endian"), if self.swap_endian { 1 } else { 0 } as u32);
             gl::Uniform1ui(self.uniloc("spacing"), self.spacing);
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
             gl::Uniform2ui(self.uniloc("selection"), self.selection.0, self.selection.1);
@@ -323,6 +330,9 @@ impl<'a> Visualizer<'a> {
             Left => {
                 let s = self.stride - 8;
                 self.set_stride(if s < 8 { 8 } else { s });
+            },
+            GraveAccent => {
+                self.swap_endian = !self.swap_endian;
             },
             S => {
                 use annotation::AnnotationEngine;
