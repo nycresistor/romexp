@@ -30,6 +30,8 @@ dragging selects a region.
 You can annotate the blob with various annotation engines that will highlight appropriate regions
 of the code. Mouse over a highlight to see more information.
 
+You can change the byte stride with the left and right keys. Backtick swaps endianness relative to the current byte stride.
+
 Currently implemented annotations:
 * S - identify C strings
 
