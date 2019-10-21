@@ -69,7 +69,7 @@ impl Font {
         }
         Font {
             program : program,
-            zoom_factor : 2.0,
+            zoom_factor : 1.0,
             vbo : vbo,
             vao : vao,
         }
