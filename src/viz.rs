@@ -232,17 +232,24 @@ impl<'a> Visualizer<'a> {
             gl::BindVertexArray(self.vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }        
-            
         let bfc = self.byte_from_coords(self.mouse_state.last_pos);
-        let text = match bfc {
-            Some(x) => format!("0x{:x}",x),
-            None => String::new(),
-        };
-
-        let text_sz = self.font.size(text.as_str());
-        let location = (size.0 - text_sz.0 as i32,
-                       size.1 - text_sz.1 as i32);
-        self.font.draw(size, location, text.as_str());
+        {
+            let text = match bfc {
+                Some(x) => format!("0x{:x}",x),
+                None => String::new(),
+            };
+            let text_sz = self.font.size(text.as_str());
+            let location = (size.0 - text_sz.0 as i32,
+                           size.1 - text_sz.1 as i32);
+            self.font.draw(size, location, text.as_str());
+        }
+        {
+            let status = format!("str 0x{:x}",self.stride/8);
+            let text_sz = self.font.size(status.as_str());
+            let location = (size.0 - text_sz.0 as i32,
+                           size.1 - 2*text_sz.1 as i32);
+            self.font.draw(size, location, status.as_str());
+        }
         match bfc {
             Some(x) => match self.annotation_store {
                 Some(ref store) => {
