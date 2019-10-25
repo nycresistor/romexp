@@ -402,7 +402,7 @@ impl<'a> Visualizer<'a> {
         }
     }
 
-    fn handle_mouse_button(&mut self, button : glfw::MouseButton, action : glfw::Action, modifiers : glfw::modifiers::Modifiers ) {
+    fn handle_mouse_button(&mut self, button : glfw::MouseButton, action : glfw::Action, modifiers : glfw::Modifiers ) {
         match button {
             glfw::MouseButtonLeft => match action {
                 glfw::Action::Release if !self.mouse_state.moved => {
