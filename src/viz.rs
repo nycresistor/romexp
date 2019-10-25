@@ -403,17 +403,19 @@ impl<'a> Visualizer<'a> {
     }
 
     fn handle_mouse_button(&mut self, button : glfw::MouseButton, action : glfw::Action, modifiers : glfw::Modifiers ) {
-        match button {
-            glfw::MouseButtonLeft => match action {
-                glfw::Action::Release if !self.mouse_state.moved => {
-                    // user clicked rather than dragged; deselect
-                    self.set_selection(0,0);
+        match (button,modifiers) {
+            (glfw::MouseButtonMiddle,_) |
+            (glfw::MouseButtonLeft,glfw::Modifiers::Shift) => match action {
+                glfw::Action::Press => {
+                    println!("MIDDLE EMU");
+                    self.mouse_state.start_ul_offset = self.ul_offset;
                 },
                 _ => {},
             },
-            glfw::MouseButtonMiddle => match action {
-                glfw::Action::Press => {
-                    self.mouse_state.start_ul_offset = self.ul_offset;
+            (glfw::MouseButtonLeft,_) => match action {
+                glfw::Action::Release if !self.mouse_state.moved => {
+                    // user clicked rather than dragged; deselect
+                    self.set_selection(0,0);
                 },
                 _ => {},
             },
@@ -436,27 +438,27 @@ impl<'a> Visualizer<'a> {
 
     }
 
-               pub fn handle_events(&mut self) {
-                   use glfw::Action;
-                   loop {
-                       match self.events.try_recv() {
-                           Ok((_, event)) => match event {
-                               glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
-                               glfw::WindowEvent::Key(key, _, Action::Repeat, _) => self.handle_kb(key),
-                               glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
-                               glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
-                               glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
-                               glfw::WindowEvent::Size(x,y) => {
-                                   //self.col_height = y as u32;
-                                   unsafe { gl::Viewport(0,0,x,y); }
-                               },
+   pub fn handle_events(&mut self) {
+       use glfw::Action;
+       loop {
+           match self.events.try_recv() {
+               Ok((_, event)) => match event {
+                   glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
+                   glfw::WindowEvent::Key(key, _, Action::Repeat, _) => self.handle_kb(key),
+                   glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
+                   glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
+                   glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
+                   glfw::WindowEvent::Size(x,y) => {
+                       //self.col_height = y as u32;
+                       unsafe { gl::Viewport(0,0,x,y); }
+                   },
 
-                               _ => {}
-                           },
-                           _ => { break; }
-                       }
-                   }
-               }
+                   _ => {}
+               },
+               _ => { break; }
+           }
+       }
+   }
                         
         
 }
