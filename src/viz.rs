@@ -235,7 +235,7 @@ impl<'a> Visualizer<'a> {
         let bfc = self.byte_from_coords(self.mouse_state.last_pos);
         {
             let text = match bfc {
-                Some(x) => format!("0x{:x}",x),
+                Some(x) => format!("0x{:x} ({:x})",x,x%(self.stride/8)),
                 None => String::new(),
             };
             let text_sz = self.font.size(text.as_str());

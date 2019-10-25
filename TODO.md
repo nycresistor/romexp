@@ -1,13 +1,11 @@
 
-* Add stride shifting [DONE]
 * tweak selection w/ kb
-* column height resizing on window resize [DONE]
-* revisit column height resizing in zoom mode
-* Status panel (slideable? sizeable? hideable? fixed?)
-* persistent settings
+* type in hex address for start, end, len
+* export selected region
 * magic number annotator?
+* search for hex sequence
+* 16, 32, 64 bit endian cycling
 * pop out selected data or annotation
-* single click to clear selection [DONE] or select annotation [still todo]
 * kb combo for panning
 * refactor mouse interaction?
 * refactor zoom?
