@@ -5,7 +5,6 @@ use gl;
 use gl::types::*;
 
 use std;
-use std::str;
 
 use annotation;
 use glutil;
@@ -16,24 +15,26 @@ static VS_SRC: &'static str = include_str!("vs.glsl");
 
 static FS_SRC: &'static str = include_str!("fs.glsl");
 
-use std::collections::HashSet;
+// Dragging is a stateful mouse interaction.
+enum MouseDragOp {
+    NoOp,
+    Select { start: (f64,f64), },
+    Panning { original_ul : (f32, f32), start: (f64, f64) },
+}
+
 
 pub struct MouseState {
-    start_drag_pos : Option<(f64,f64)>,
     last_pos : (f64, f64),
     moved : bool, //< Whether we've actually dragged or just clicked
-    down : HashSet<glfw::MouseButton>,
-    start_ul_offset : (f32, f32),
+    op : MouseDragOp,
 }
 
 impl MouseState {
     pub fn new() -> MouseState {
         MouseState { 
-            start_drag_pos : None, 
             last_pos : (0.0, 0.0),
             moved : false,
-            down : HashSet::new(),
-            start_ul_offset : (0.0, 0.0),
+            op : MouseDragOp::NoOp,
         }
     }
 }
@@ -360,24 +361,24 @@ impl<'a> Visualizer<'a> {
     fn handle_mouse_move(&mut self, pos : (f64, f64) ) {
         if self.mouse_state.last_pos != pos { self.mouse_state.moved = true; }
         self.mouse_state.last_pos = pos;
-        if !self.mouse_state.down.is_empty() {
-            if self.mouse_state.down.contains(&glfw::MouseButtonLeft) {
+        match self.mouse_state.op {
+            MouseDragOp::Panning { original_ul, start } => {
+                let (x1, y1) = start;
+                let (x2, y2) = self.mouse_state.last_pos;
+                let (dx, dy) = (x2 - x1, y2 - y1);
+                let xoff = original_ul.0 - dx as f32;
+                let yoff = original_ul.1 - dy as f32;
+                self.ul_offset = (xoff, yoff);
+            },
+            MouseDragOp::Select { start } => {
                 let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
-                let drag_start = match self.mouse_state.start_drag_pos {
-                    None => None, Some(x) => self.byte_from_coords(x),
-                };
+                let drag_start = self.byte_from_coords(start);
                 match (drag_start, drag_end) {
                     (Some(s), Some(e)) => self.set_selection(s * 8, e * 8), // *8 because bit index
                     _ => {},
-                }
-            } else if self.mouse_state.down.contains(&glfw::MouseButtonMiddle) {
-                let (x1, y1) = self.mouse_state.start_drag_pos.unwrap();
-                let (x2, y2) = self.mouse_state.last_pos;
-                let (dx, dy) = (x2 - x1, y2 - y1);
-                let xoff = self.mouse_state.start_ul_offset.0 - dx as f32;
-                let yoff = self.mouse_state.start_ul_offset.1 - dy as f32;
-                self.ul_offset = (xoff, yoff);
-            }
+                };
+            },
+            _ => {},
         }
     }
     
@@ -396,46 +397,40 @@ impl<'a> Visualizer<'a> {
             let row = y as u32;
             let col_byte_w = self.stride/8;
             let mut boff = (x as u32 % (self.stride + self.spacing))/8;
-            if (boff >= self.stride) { boff = self.stride -1; }
+            if boff >= self.stride { boff = self.stride -1; }
             let idx = (column * self.col_height * col_byte_w) + (row * col_byte_w) + boff;
             if idx < self.data_len as u32 { Some(idx) } else { None }
         }
     }
 
     fn handle_mouse_button(&mut self, button : glfw::MouseButton, action : glfw::Action, modifiers : glfw::Modifiers ) {
-        match (button,modifiers) {
-            (glfw::MouseButtonMiddle,_) |
-            (glfw::MouseButtonLeft,glfw::Modifiers::Shift) => match action {
-                glfw::Action::Press => {
-                    println!("MIDDLE EMU");
-                    self.mouse_state.start_ul_offset = self.ul_offset;
-                },
-                _ => {},
-            },
-            (glfw::MouseButtonLeft,_) => match action {
-                glfw::Action::Release if !self.mouse_state.moved => {
-                    // user clicked rather than dragged; deselect
-                    self.set_selection(0,0);
-                },
-                _ => {},
-            },
-            _ => {},
-        }
-        
         match action {
             glfw::Action::Press => {
-                self.mouse_state.down.insert(button);
                 self.mouse_state.moved = false;
                 self.mouse_state.last_pos = self.window.get_cursor_pos();
-                self.mouse_state.start_drag_pos = Some(self.mouse_state.last_pos);
+                self.mouse_state.op = 
+                    match (button, modifiers) {
+                        (glfw::MouseButtonLeft,glfw::Modifiers::Shift) |
+                        (glfw::MouseButtonMiddle,_) => MouseDragOp::Panning {
+                            original_ul : self.ul_offset,
+                            start : self.mouse_state.last_pos },
+                        (glfw::MouseButtonLeft,_) =>
+                            MouseDragOp::Select { 
+                                start : self.mouse_state.last_pos },
+                        _ => MouseDragOp::NoOp,
+                    };
             },
             glfw::Action::Release => {
-                self.mouse_state.down.remove(&button);
-                self.mouse_state.start_drag_pos = None;
+                match self.mouse_state.op {
+                    MouseDragOp::Select { start } if !self.mouse_state.moved => {
+                        self.set_selection(0,0);
+                    },
+                    _ => {},
+                }
+                self.mouse_state.op = MouseDragOp::NoOp;
             },
             _ => {},
         };
-
     }
 
    pub fn handle_events(&mut self) {
