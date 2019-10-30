@@ -46,7 +46,7 @@ pub struct Visualizer<'a> {
     vao : GLuint,
     data_len : usize,
     /// width, in bits, of each column
-    stride : u32,
+    word : u32,
     swap_endian : bool,
     /// height, in rows, of each colum
     col_height : u32,
@@ -169,7 +169,7 @@ impl<'a> Visualizer<'a> {
             program : program,
             vao : vao,
             data_len : dat.len(),
-            stride : 8,
+            word : 8,
             swap_endian : false,
             col_height : 512,
             spacing : 4,
@@ -191,8 +191,8 @@ impl<'a> Visualizer<'a> {
         self.selection = (start, finish);
     }
 
-    pub fn set_stride(&mut self, stride : u32) {
-        self.stride = stride;
+    pub fn set_word(&mut self, word : u32) {
+        self.word = word;
     }
 
     pub fn set_spacing(&mut self, spacing : u32) {
@@ -218,8 +218,8 @@ impl<'a> Visualizer<'a> {
             gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
             
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
-            gl::Uniform1ui(self.uniloc("bitstride"), self.stride);
-            gl::Uniform1ui(self.uniloc("colstride"), self.stride*self.col_height);
+            gl::Uniform1ui(self.uniloc("bitstride"), self.word);
+            gl::Uniform1ui(self.uniloc("colstride"), self.word*self.col_height);
             gl::Uniform1ui(self.uniloc("swap_endian"), if self.swap_endian { 1 } else { 0 } as u32);
             gl::Uniform1ui(self.uniloc("spacing"), self.spacing);
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
@@ -236,7 +236,7 @@ impl<'a> Visualizer<'a> {
         let bfc = self.byte_from_coords(self.mouse_state.last_pos);
         {
             let text = match bfc {
-                Some(x) => format!("0x{:x} ({:x})",x,x%(self.stride/8)),
+                Some(x) => format!("0x{:x} ({:x})",x,x%(self.word/8)),
                 None => String::new(),
             };
             let text_sz = self.font.size(text.as_str());
@@ -245,7 +245,7 @@ impl<'a> Visualizer<'a> {
             self.font.draw(size, location, text.as_str());
         }
         {
-            let status = format!("str 0x{:x}",self.stride/8);
+            let status = format!("str 0x{:x}",self.word/8);
             let text_sz = self.font.size(status.as_str());
             let location = (size.0 - text_sz.0 as i32,
                            size.1 - 2*text_sz.1 as i32);
@@ -332,12 +332,12 @@ impl<'a> Visualizer<'a> {
             Up => self.zoom_in(),
             Down => self.zoom_out(),
             Right => {
-                let s = self.stride + 8;
-                self.set_stride(s);
+                let s = self.word + 8;
+                self.set_word(s);
             },
             Left => {
-                let s = self.stride - 8;
-                self.set_stride(if s < 8 { 8 } else { s });
+                let s = self.word - 8;
+                self.set_word(if s < 8 { 8 } else { s });
             },
             GraveAccent => {
                 self.swap_endian = !self.swap_endian;
@@ -393,11 +393,11 @@ impl<'a> Visualizer<'a> {
         {
             None
         } else {
-            let column = x as u32/(self.stride + self.spacing);
+            let column = x as u32/(self.word + self.spacing);
             let row = y as u32;
-            let col_byte_w = self.stride/8;
-            let mut boff = (x as u32 % (self.stride + self.spacing))/8;
-            if boff >= self.stride { boff = self.stride -1; }
+            let col_byte_w = self.word/8;
+            let mut boff = (x as u32 % (self.word + self.spacing))/8;
+            if boff >= self.word { boff = self.word -1; }
             let idx = (column * self.col_height * col_byte_w) + (row * col_byte_w) + boff;
             if idx < self.data_len as u32 { Some(idx) } else { None }
         }

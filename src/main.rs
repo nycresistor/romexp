@@ -23,10 +23,10 @@ fn main() {
         .version("0.1")
         .author("phooky@gmail.com")
         .about("Quickly analyze ROM dumps and other binary blobs")
-        .arg(Arg::with_name("stride")
-             .help("Starting stride in bytes")
-             .short("s")
-             .long("stride")
+        .arg(Arg::with_name("wordsize")
+             .help("Starting word size in bytes")
+             .short("w")
+             .long("wordsize")
              .takes_value(true)
              .default_value("1"))
         .arg(Arg::with_name("intercolumn")
@@ -45,18 +45,18 @@ fn main() {
         Ok(r) => r,
         Err(e) => { println!("Could not open {}: {}",rom_path,e); return; },
     };
-    let stride = value_t_or_exit!(matches,"stride",u32) * 8;
+    let word = value_t_or_exit!(matches,"wordsize",u32) * 8;
     println!("Opened {}; size {} bytes",rom_path,rom.len());
 
     let height = 512;
     let spacing = value_t_or_exit!(matches,"intercolumn",u32); // default spacing in px
-    let bytes_per_column = (stride/8)*height;
+    let bytes_per_column = (word/8)*height;
     let columns = rom.len() as u32 / bytes_per_column;
-    let width = cmp::max(512,(columns*(stride+spacing)));
+    let width = cmp::max(512,(columns*(word+spacing)));
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     let mut viz = viz::Visualizer::new(&mut glfw, (width, height), unsafe { rom.as_slice() });
-    viz.set_stride(stride);
+    viz.set_word(word);
     viz.set_spacing(spacing);
     viz.window.make_current();
     glfw.set_swap_interval(glfw::SwapInterval::Sync(1));

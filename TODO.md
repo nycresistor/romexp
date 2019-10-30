@@ -23,6 +23,7 @@ Grave -> toggle endianness (BE, 16b LE, 32b LE, 64b LE, custom word)
 W -> "where" mode (selection start by hex)
 S-W -> "where" end mode (selection end by hex)
 
+* Add height selection/
 * tweak selection w/ kb
 * type in hex address for start, end, len
 * export selected region
