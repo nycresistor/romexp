@@ -5,7 +5,6 @@ use gl;
 use gl::types::*;
 
 use std;
-use std::str;
 
 use annotation;
 use glutil;
@@ -16,24 +15,26 @@ static VS_SRC: &'static str = include_str!("vs.glsl");
 
 static FS_SRC: &'static str = include_str!("fs.glsl");
 
-use std::collections::HashSet;
+// Dragging is a stateful mouse interaction.
+enum MouseDragOp {
+    NoOp,
+    Select { start: (f64,f64), },
+    Panning { original_ul : (f32, f32), start: (f64, f64) },
+}
+
 
 pub struct MouseState {
-    start_drag_pos : Option<(f64,f64)>,
     last_pos : (f64, f64),
     moved : bool, //< Whether we've actually dragged or just clicked
-    down : HashSet<glfw::MouseButton>,
-    start_ul_offset : (f32, f32),
+    op : MouseDragOp,
 }
 
 impl MouseState {
     pub fn new() -> MouseState {
         MouseState { 
-            start_drag_pos : None, 
             last_pos : (0.0, 0.0),
             moved : false,
-            down : HashSet::new(),
-            start_ul_offset : (0.0, 0.0),
+            op : MouseDragOp::NoOp,
         }
     }
 }
@@ -45,7 +46,7 @@ pub struct Visualizer<'a> {
     vao : GLuint,
     data_len : usize,
     /// width, in bits, of each column
-    stride : u32,
+    word : u32,
     swap_endian : bool,
     /// height, in rows, of each colum
     col_height : u32,
@@ -168,7 +169,7 @@ impl<'a> Visualizer<'a> {
             program : program,
             vao : vao,
             data_len : dat.len(),
-            stride : 8,
+            word : 8,
             swap_endian : false,
             col_height : 512,
             spacing : 4,
@@ -190,8 +191,8 @@ impl<'a> Visualizer<'a> {
         self.selection = (start, finish);
     }
 
-    pub fn set_stride(&mut self, stride : u32) {
-        self.stride = stride;
+    pub fn set_word(&mut self, word : u32) {
+        self.word = word;
     }
 
     pub fn set_spacing(&mut self, spacing : u32) {
@@ -217,8 +218,8 @@ impl<'a> Visualizer<'a> {
             gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
             
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
-            gl::Uniform1ui(self.uniloc("bitstride"), self.stride);
-            gl::Uniform1ui(self.uniloc("colstride"), self.stride*self.col_height);
+            gl::Uniform1ui(self.uniloc("bitstride"), self.word);
+            gl::Uniform1ui(self.uniloc("colstride"), self.word*self.col_height);
             gl::Uniform1ui(self.uniloc("swap_endian"), if self.swap_endian { 1 } else { 0 } as u32);
             gl::Uniform1ui(self.uniloc("spacing"), self.spacing);
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
@@ -235,7 +236,7 @@ impl<'a> Visualizer<'a> {
         let bfc = self.byte_from_coords(self.mouse_state.last_pos);
         {
             let text = match bfc {
-                Some(x) => format!("0x{:x} ({:x})",x,x%(self.stride/8)),
+                Some(x) => format!("0x{:x} ({:x})",x,x%(self.word/8)),
                 None => String::new(),
             };
             let text_sz = self.font.size(text.as_str());
@@ -244,7 +245,7 @@ impl<'a> Visualizer<'a> {
             self.font.draw(size, location, text.as_str());
         }
         {
-            let status = format!("str 0x{:x}",self.stride/8);
+            let status = format!("str 0x{:x}",self.word/8);
             let text_sz = self.font.size(status.as_str());
             let location = (size.0 - text_sz.0 as i32,
                            size.1 - 2*text_sz.1 as i32);
@@ -331,12 +332,12 @@ impl<'a> Visualizer<'a> {
             Up => self.zoom_in(),
             Down => self.zoom_out(),
             Right => {
-                let s = self.stride + 8;
-                self.set_stride(s);
+                let s = self.word + 8;
+                self.set_word(s);
             },
             Left => {
-                let s = self.stride - 8;
-                self.set_stride(if s < 8 { 8 } else { s });
+                let s = self.word - 8;
+                self.set_word(if s < 8 { 8 } else { s });
             },
             GraveAccent => {
                 self.swap_endian = !self.swap_endian;
@@ -360,24 +361,24 @@ impl<'a> Visualizer<'a> {
     fn handle_mouse_move(&mut self, pos : (f64, f64) ) {
         if self.mouse_state.last_pos != pos { self.mouse_state.moved = true; }
         self.mouse_state.last_pos = pos;
-        if !self.mouse_state.down.is_empty() {
-            if self.mouse_state.down.contains(&glfw::MouseButtonLeft) {
+        match self.mouse_state.op {
+            MouseDragOp::Panning { original_ul, start } => {
+                let (x1, y1) = start;
+                let (x2, y2) = self.mouse_state.last_pos;
+                let (dx, dy) = (x2 - x1, y2 - y1);
+                let xoff = original_ul.0 - dx as f32;
+                let yoff = original_ul.1 - dy as f32;
+                self.ul_offset = (xoff, yoff);
+            },
+            MouseDragOp::Select { start } => {
                 let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
-                let drag_start = match self.mouse_state.start_drag_pos {
-                    None => None, Some(x) => self.byte_from_coords(x),
-                };
+                let drag_start = self.byte_from_coords(start);
                 match (drag_start, drag_end) {
                     (Some(s), Some(e)) => self.set_selection(s * 8, e * 8), // *8 because bit index
                     _ => {},
-                }
-            } else if self.mouse_state.down.contains(&glfw::MouseButtonMiddle) {
-                let (x1, y1) = self.mouse_state.start_drag_pos.unwrap();
-                let (x2, y2) = self.mouse_state.last_pos;
-                let (dx, dy) = (x2 - x1, y2 - y1);
-                let xoff = self.mouse_state.start_ul_offset.0 - dx as f32;
-                let yoff = self.mouse_state.start_ul_offset.1 - dy as f32;
-                self.ul_offset = (xoff, yoff);
-            }
+                };
+            },
+            _ => {},
         }
     }
     
@@ -392,71 +393,67 @@ impl<'a> Visualizer<'a> {
         {
             None
         } else {
-            let column = x as u32/(self.stride + self.spacing);
+            let column = x as u32/(self.word + self.spacing);
             let row = y as u32;
-            let col_byte_w = self.stride/8;
-            let mut boff = (x as u32 % (self.stride + self.spacing))/8;
-            if (boff >= self.stride) { boff = self.stride -1; }
+            let col_byte_w = self.word/8;
+            let mut boff = (x as u32 % (self.word + self.spacing))/8;
+            if boff >= self.word { boff = self.word -1; }
             let idx = (column * self.col_height * col_byte_w) + (row * col_byte_w) + boff;
             if idx < self.data_len as u32 { Some(idx) } else { None }
         }
     }
 
     fn handle_mouse_button(&mut self, button : glfw::MouseButton, action : glfw::Action, modifiers : glfw::Modifiers ) {
-        match button {
-            glfw::MouseButtonLeft => match action {
-                glfw::Action::Release if !self.mouse_state.moved => {
-                    // user clicked rather than dragged; deselect
-                    self.set_selection(0,0);
-                },
-                _ => {},
-            },
-            glfw::MouseButtonMiddle => match action {
-                glfw::Action::Press => {
-                    self.mouse_state.start_ul_offset = self.ul_offset;
-                },
-                _ => {},
-            },
-            _ => {},
-        }
-        
         match action {
             glfw::Action::Press => {
-                self.mouse_state.down.insert(button);
                 self.mouse_state.moved = false;
                 self.mouse_state.last_pos = self.window.get_cursor_pos();
-                self.mouse_state.start_drag_pos = Some(self.mouse_state.last_pos);
+                self.mouse_state.op = 
+                    match (button, modifiers) {
+                        (glfw::MouseButtonLeft,glfw::Modifiers::Shift) |
+                        (glfw::MouseButtonMiddle,_) => MouseDragOp::Panning {
+                            original_ul : self.ul_offset,
+                            start : self.mouse_state.last_pos },
+                        (glfw::MouseButtonLeft,_) =>
+                            MouseDragOp::Select { 
+                                start : self.mouse_state.last_pos },
+                        _ => MouseDragOp::NoOp,
+                    };
             },
             glfw::Action::Release => {
-                self.mouse_state.down.remove(&button);
-                self.mouse_state.start_drag_pos = None;
+                match self.mouse_state.op {
+                    MouseDragOp::Select { start } if !self.mouse_state.moved => {
+                        self.set_selection(0,0);
+                    },
+                    _ => {},
+                }
+                self.mouse_state.op = MouseDragOp::NoOp;
             },
             _ => {},
         };
-
     }
 
-               pub fn handle_events(&mut self) {
-                   use glfw::Action;
-                   loop {
-                       match self.events.try_recv() {
-                           Ok((_, event)) => match event {
-                               glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
-                               glfw::WindowEvent::Key(key, _, Action::Repeat, _) => self.handle_kb(key),
-                               glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
-                               glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
-                               glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
-                               glfw::WindowEvent::Size(x,y) => {
-                                   //self.col_height = y as u32;
-                                   unsafe { gl::Viewport(0,0,x,y); }
-                               },
+   pub fn handle_events(&mut self) {
+       use glfw::Action;
+       loop {
+           match self.events.try_recv() {
+               Ok((_, event)) => match event {
+                   glfw::WindowEvent::Key(key, _, Action::Press, _) => self.handle_kb(key),
+                   glfw::WindowEvent::Key(key, _, Action::Repeat, _) => self.handle_kb(key),
+                   glfw::WindowEvent::MouseButton(b, a, m) => self.handle_mouse_button(b,a,m),
+                   glfw::WindowEvent::CursorPos(x,y) => self.handle_mouse_move((x,y)),
+                   glfw::WindowEvent::Scroll(_, ydelta) => self.handle_scroll(ydelta),
+                   glfw::WindowEvent::Size(x,y) => {
+                       //self.col_height = y as u32;
+                       unsafe { gl::Viewport(0,0,x,y); }
+                   },
 
-                               _ => {}
-                           },
-                           _ => { break; }
-                       }
-                   }
-               }
+                   _ => {}
+               },
+               _ => { break; }
+           }
+       }
+   }
                         
         
 }
