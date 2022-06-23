@@ -45,21 +45,30 @@ void main() {
     uint bitidx = col * colstride + row * bitstride + ac.x % bitstride;
     uint tex_off = (bitidx / 8u) + dataoff;
     uint tex_bit_off = bitidx % 8u;
+    if (bpp == 8u) {
+        tex_off = bitidx + dataoff;
+        tex_bit_off = 0u;
+    }    
      
     if (swap_endian == true) {
         uint bytes = bitstride / 8u;
         tex_off = ((tex_off / bytes) * bytes) + (bytes - (1u+(tex_off % bytes)));
     } 
+
     if (row >= (colstride/bitstride) || tex_off >= datalen) {
         color = vec4(0.0,0.0,0.4,1.0);
         return;
     }       
     uint tex_off_x = tex_off % texwidth;
     uint tex_off_y = tex_off / texwidth;
-    uint rv = (texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r >> (7u-tex_bit_off)) & 1u;
+    float rv = float((texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r >> (7u-tex_bit_off)) & 1u);
+    if (bpp == 8u) {
+       rv = float((texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r) / 255.0);
+    }
+
     // get annotation
     uint anno = texelFetch(annotex, ivec2(int(tex_off_x),int(tex_off_y)),0).r;
-    vec4 c = vec4(float(rv),float(rv+anno),float(rv), 1.0);
+    vec4 c = vec4(rv,rv+float(anno),rv, 1.0);
     if (anno != 0u) { 
         c.r = 0.0; 
     }
