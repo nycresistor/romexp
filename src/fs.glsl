@@ -43,6 +43,9 @@ void main() {
     }
 
     uint bitidx = col * colstride + row * bitstride + ac.x % bitstride;
+    if (bpp == 8u) {
+       bitidx = col * colstride + row * bitstride / 8u + ac.x % bitstride /8u;
+    }
     uint tex_off = (bitidx / 8u) + dataoff;
     uint tex_bit_off = bitidx % 8u;
     if (bpp == 8u) {
