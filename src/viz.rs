@@ -46,6 +46,7 @@ pub struct Visualizer<'a> {
     vao : GLuint,
     data_len : usize,
     data_offset : usize,
+    bpp : u8,
     /// width, in bits, of each column
     word : u32,
     swap_endian : bool,
@@ -171,6 +172,7 @@ impl<'a> Visualizer<'a> {
             vao : vao,
             data_len : dat.len(),
 	    data_offset : 0,
+	    bpp : 1,
             word : 8,
             swap_endian : false,
             col_height : 512,
@@ -230,6 +232,7 @@ impl<'a> Visualizer<'a> {
             gl::Uniform1ui(self.uniloc("spacing"), self.spacing);
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
             gl::Uniform1ui(self.uniloc("dataoff"), self.data_offset as u32);
+            gl::Uniform1ui(self.uniloc("bpp"), self.bpp as u32);
             gl::Uniform2ui(self.uniloc("selection"), self.selection.0, self.selection.1);
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
             gl::Uniform1i(self.uniloc("romtex"), 0 as i32); //self.texture as i32);
@@ -335,6 +338,8 @@ impl<'a> Visualizer<'a> {
     fn handle_kb(&mut self, key : glfw::Key) {
         use glfw::Key::*;
         match key {
+	    Num1 => self.bpp = 1,
+	    Num8 => self.bpp = 8,
             Escape => self.window.set_should_close(true),
             Up => self.zoom_in(),
             Down => self.zoom_out(),
