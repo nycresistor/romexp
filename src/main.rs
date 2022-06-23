@@ -52,7 +52,7 @@ fn main() {
     let spacing = value_t_or_exit!(matches,"intercolumn",u32); // default spacing in px
     let bytes_per_column = (word/8)*height;
     let columns = rom.len() as u32 / bytes_per_column;
-    let width = cmp::max(512,(columns*(word+spacing)));
+    let width = cmp::max(512,columns*(word+spacing));
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     let mut viz = viz::Visualizer::new(&mut glfw, (width, height), unsafe { rom.as_slice() });

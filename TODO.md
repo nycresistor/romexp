@@ -1,3 +1,17 @@
+# TODO
+
+## Current todo
+
+* lint rust errors
+* add 8-bit/1-bit mode toggle
+* add cli and in-app skip adjustment
+* add cli and in-app data end adjustment
+
+
+
+
+## Old todo
+
 current setup:
 Middle drag -> panning
 S-Left drag -> panning

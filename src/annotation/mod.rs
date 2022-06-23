@@ -11,7 +11,7 @@ pub trait AnnotationEngine {
 }
 
 pub struct AnnotationStore {
-    v : Vec<Box<Annotation>>,
+    v : Vec<Box<dyn Annotation>>,
     title : String,
 }
 
@@ -21,11 +21,11 @@ impl AnnotationStore {
     pub fn new(title : &str) -> AnnotationStore {
         AnnotationStore { v : Vec::new(), title : String::from(title), }
     }
-    pub fn insert(&mut self, a : Box<Annotation>) {
+    pub fn insert(&mut self, a : Box<dyn Annotation>) {
         self.v.push(a)
     }
 
-    pub fn query<'a>(&'a self, point : usize) -> Vec<&'a Box<Annotation>> {
+    pub fn query<'a>(&'a self, point : usize) -> Vec<&'a Box<dyn Annotation>> {
         let mut v = Vec::new();
         for a in &self.v {
             let span = a.span();
@@ -36,11 +36,11 @@ impl AnnotationStore {
         v
     }
 
-    pub fn iter(&self) -> Iter<Box<Annotation>> { self.v.iter() }
+    pub fn iter(&self) -> Iter<Box<dyn Annotation>> { self.v.iter() }
 }
 
 impl IntoIterator for AnnotationStore {
-    type Item = Box<Annotation>;
+    type Item = Box<dyn Annotation>;
     type IntoIter = ::std::vec::IntoIter<Self::Item>;
     fn into_iter(self) -> Self::IntoIter { self.v.into_iter() }
 }
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn annotation_store() {
         let mut store = AnnotationStore::new("test store");
-        fn mka( start : usize, end : usize ) -> Box<Annotation> {
+        fn mka( start : usize, end : usize ) -> Box<dyn Annotation> {
             let c = format!("{}-{}",start,end).to_string();
             Box::new(CStringAnnotation { start : start, end : end, contents : c })
         }
