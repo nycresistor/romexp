@@ -45,6 +45,7 @@ pub struct Visualizer<'a> {
     program : GLuint,
     vao : GLuint,
     data_len : usize,
+    data_offset : usize,
     /// width, in bits, of each column
     word : u32,
     swap_endian : bool,
@@ -169,6 +170,7 @@ impl<'a> Visualizer<'a> {
             program : program,
             vao : vao,
             data_len : dat.len(),
+	    data_offset : 0,
             word : 8,
             swap_endian : false,
             col_height : 512,
@@ -185,6 +187,10 @@ impl<'a> Visualizer<'a> {
             annotation_store : None,
             font : font::Font::new(),
         }
+    }
+
+    pub fn set_offset(&mut self, offset : usize) {
+	self.data_offset = offset;
     }
     
     pub fn set_selection(&mut self, start : u32, finish : u32) {
@@ -223,6 +229,7 @@ impl<'a> Visualizer<'a> {
             gl::Uniform1ui(self.uniloc("swap_endian"), if self.swap_endian { 1 } else { 0 } as u32);
             gl::Uniform1ui(self.uniloc("spacing"), self.spacing);
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
+            gl::Uniform1ui(self.uniloc("dataoff"), self.data_offset as u32);
             gl::Uniform2ui(self.uniloc("selection"), self.selection.0, self.selection.1);
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
             gl::Uniform1i(self.uniloc("romtex"), 0 as i32); //self.texture as i32);

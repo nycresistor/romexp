@@ -8,6 +8,7 @@ uniform uint bitstride;
 uniform uint colstride;
 uniform uint spacing;
 uniform uint datalen;
+uniform uint dataoff;
 uniform bool swap_endian;
 uniform bool bitmode; // true to display data as bits, false as bytes. maybe a width?
 
@@ -41,7 +42,7 @@ void main() {
      }
 
      uint bitidx = col * colstride + row * bitstride + ac.x % bitstride;
-     uint tex_off = bitidx / 8u;
+     uint tex_off = (bitidx / 8u) + dataoff;
      uint tex_bit_off = bitidx % 8u;
      
      if (swap_endian == true) {

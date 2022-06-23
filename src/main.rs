@@ -25,16 +25,21 @@ fn main() {
         .about("Quickly analyze ROM dumps and other binary blobs")
         .arg(Arg::with_name("wordsize")
              .help("Starting word size in bytes")
-             .short("w")
+             .short('w')
              .long("wordsize")
              .takes_value(true)
              .default_value("1"))
         .arg(Arg::with_name("intercolumn")
              .help("space between columns")
              .long("intercolumn")
-             .short("i")
+             .short('i')
              .takes_value(true)
              .default_value("0"))
+	.arg(Arg::with_name("offset")
+	     .help("initial offset into binary blob")
+	     .short('o')
+	     .takes_value(true)
+	     .default_value("0"))
         .arg(Arg::with_name("ROM")
             .help("ROM file to analyze")
             .required(true))
@@ -50,6 +55,7 @@ fn main() {
 
     let height = 512;
     let spacing = value_t_or_exit!(matches,"intercolumn",u32); // default spacing in px
+    let offset = value_t_or_exit!(matches,"offset",usize); // initial offset
     let bytes_per_column = (word/8)*height;
     let columns = rom.len() as u32 / bytes_per_column;
     let width = cmp::max(512,columns*(word+spacing));
@@ -58,6 +64,7 @@ fn main() {
     let mut viz = viz::Visualizer::new(&mut glfw, (width, height), unsafe { rom.as_slice() });
     viz.set_word(word);
     viz.set_spacing(spacing);
+    viz.set_offset(offset);
     viz.window.make_current();
     glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
     while !viz.window.should_close() {
