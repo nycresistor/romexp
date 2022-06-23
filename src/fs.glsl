@@ -49,8 +49,8 @@ void main() {
         tex_off = bitidx + dataoff;
         tex_bit_off = 0u;
     }    
-     
-    if (swap_endian == true) {
+
+    if (swap_endian == true && bitstride > 8u) {
         uint bytes = bitstride / 8u;
         tex_off = ((tex_off / bytes) * bytes) + (bytes - (1u+(tex_off % bytes)));
     } 
