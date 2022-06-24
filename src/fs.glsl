@@ -4,14 +4,23 @@
 in vec2 v_tex_coords;
 out vec4 color;
 
+// The data display is organized into a number of columns of a fixed height, displayed side by side with a specified spacing between them.
+
 uniform uvec4 win;        // bounds of physical window
-uniform uint bitstride;   // width of column in bits
-uniform uint colstride;   // number of bits between successive columns
-uniform uint spacing;     // spacing between columns, in pixels
+
+uniform float zoom;       // zoom factor (2.0 = 2x)
+uniform vec2 ul_offset;   // offset of upper left hand corner in pixels at the current zoom level
+
+uniform uint colwidth;    // width of a column of data, in elements
+uniform uint colspace;    // spacing between adjacent columns, in elements
+uniform uint colheight;   // height of a column of data, in elements
+
 uniform uint datalen;     // total length of data, in bytes
 uniform uint dataoff;     // offset before start of data to display, in bytes
 uniform uint bpp;         // bits per pixel (1 for bitmap, 8 for bytemap, etc)
-uniform bool swap_endian; // swap byte-endianness when true
+
+// Disabling endian swap for now
+// uniform bool swap_endian; // swap byte-endianness when true
 
 uniform uvec2 selection;  // start and end of selection, in bytes
 uniform uint texwidth;    // width of data texture
@@ -19,10 +28,7 @@ uniform uint texwidth;    // width of data texture
 uniform usampler2D romtex;  // data texture
 uniform usampler2D annotex; // annotation texture
 
-/// zoom factor (2.0 = 2x)
-uniform float zoom;
-/// offset of upper left hand corner in pixels at the current zoom level
-uniform vec2 ul_offset;
+
 
 void main() {
     // Convert from texture coordinates to screen coordinates.
@@ -35,51 +41,60 @@ void main() {
         color = vec4(0.0,0.0,0.4,1.0);
         return;
     }
+
     // Adjust for the top left corner of the window (normally 0,0)
     uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
-    uint col = ac.x / (bitstride + spacing);
+
+    // Compute which column, the row of the column, and the element index within it
+    uint col = ac.x / (colwidth + colspace);
     uint row = ac.y;
-     
-    if (ac.x % (bitstride+spacing) >= bitstride) { 
+    uint el_in_row = ac.x % (colwidth + colspace);
+
+    // Handle points below the data or in the gutters between columns.
+    if (el_in_row >= colwidth || row > colheight) {
         color = vec4(0.0,0.0,0.4,1.0);
         return;
     }
 
-    uint bitidx = col * colstride + row * bitstride + ac.x % bitstride;
-    if (bpp == 8u) {
-       bitidx = col * colstride + row * bitstride / 8u + ac.x % bitstride /8u;
-    }
-    uint tex_off = (bitidx / 8u) + dataoff;
-    uint tex_bit_off = bitidx % 8u;
-    if (bpp == 8u) {
-        tex_off = bitidx + dataoff;
-        tex_bit_off = 0u;
-    }    
+    // compute the element index in the array.
+    uint elidx = (colwidth * colheight * col) + (row * colwidth) + el_in_row;
 
-    if (swap_endian == true && bitstride > 8u) {
-        uint bytes = bitstride / 8u;
-        tex_off = ((tex_off / bytes) * bytes) + (bytes - (1u+(tex_off % bytes)));
-    } 
+    // find the offset into the texture data.
+    uint ppb = 8u / bpp; // pixels per byte
+    uint tex_off = (elidx / ppb) + dataoff;
+    uint tex_bit_off = elidx % ppb;
 
-    if (row >= (colstride/bitstride) || tex_off >= datalen) {
+    // Disabling endianness swap until we find a more reasonable way of expressing it.
+    //if (swap_endian == true && bitstride > 8u) {
+    //    uint bytes = bitstride / 8u;
+    //    tex_off = ((tex_off / bytes) * bytes) + (bytes - (1u+(tex_off % bytes)));
+    //}
+
+    // Handle points past the end of the data.
+    if (tex_off >= datalen) {
         color = vec4(0.0,0.0,0.4,1.0);
         return;
-    }       
+    }
+
+
+    // Find the data in the texture.
     uint tex_off_x = tex_off % texwidth;
     uint tex_off_y = tex_off / texwidth;
-    float rv = float((texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r >> (7u-tex_bit_off)) & 1u);
-    if (bpp == 8u) {
-       rv = float((texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r) / 255.0);
-    }
+    uint tex_byte = texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r;
+
+    uint tex_mask = (1u<<bpp)-1u;
+    uint tex_val = (tex_byte >> (7u - tex_bit_off)) & tex_mask;
+    float rv = float(tex_val); // / float(tex_mask);
 
     // get annotation
     uint anno = texelFetch(annotex, ivec2(int(tex_off_x),int(tex_off_y)),0).r;
     vec4 c = vec4(rv,rv+float(anno),rv, 1.0);
-    if (anno != 0u) { 
+    if (anno != 0u) {
         c.r = 0.0; 
     }
-    if (selection[0] != selection[1] && bitidx >= selection[0] && bitidx <= selection[1]+7u) {
+    if (selection[0] != selection[1] && elidx >= selection[0] && elidx <= selection[1]+7u) {
         c.b = 0.0; c.g = 0.0;
     }
     color = c;
+    //color = vec4(0.0,0.0,0.4,1.0);
 }

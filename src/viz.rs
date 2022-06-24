@@ -226,10 +226,10 @@ impl<'a> Visualizer<'a> {
             gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
             
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
-            gl::Uniform1ui(self.uniloc("bitstride"), self.word);
-            gl::Uniform1ui(self.uniloc("colstride"), self.word*self.col_height);
-            gl::Uniform1ui(self.uniloc("swap_endian"), if self.swap_endian { 1 } else { 0 } as u32);
-            gl::Uniform1ui(self.uniloc("spacing"), self.spacing);
+            gl::Uniform1ui(self.uniloc("colwidth"), self.word);
+            gl::Uniform1ui(self.uniloc("colheight"), self.col_height);
+            //gl::Uniform1ui(self.uniloc("swap_endian"), if self.swap_endian { 1 } else { 0 } as u32);
+            gl::Uniform1ui(self.uniloc("colspace"), self.spacing);
             gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
             gl::Uniform1ui(self.uniloc("dataoff"), self.data_offset as u32);
             gl::Uniform1ui(self.uniloc("bpp"), self.bpp as u32);

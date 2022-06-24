@@ -6,5 +6,5 @@ authors = ["Adam Mayer <phooky@gmail.com>"]
 [dependencies]
 clap = "3.2.6"
 memmap = "0.5.2"
-glfw="0.33.0"
+glfw="0.45.0"
 gl="0.14.0"
