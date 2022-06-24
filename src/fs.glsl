@@ -1,23 +1,23 @@
 #version 130
 
+// The texture coordinates are mapped over the window from (0.0,0.0) to (1.0,1.0)
 in vec2 v_tex_coords;
 out vec4 color;
 
-uniform uvec4 win;
-uniform uint bitstride;
-uniform uint colstride;
-uniform uint spacing;
-uniform uint datalen;
-uniform uint dataoff;
-uniform uint bpp;
-uniform bool swap_endian;
-uniform bool bitmode; // true to display data as bits, false as bytes. maybe a width?
+uniform uvec4 win;        // bounds of physical window
+uniform uint bitstride;   // width of column in bits
+uniform uint colstride;   // number of bits between successive columns
+uniform uint spacing;     // spacing between columns, in pixels
+uniform uint datalen;     // total length of data, in bytes
+uniform uint dataoff;     // offset before start of data to display, in bytes
+uniform uint bpp;         // bits per pixel (1 for bitmap, 8 for bytemap, etc)
+uniform bool swap_endian; // swap byte-endianness when true
 
-uniform uvec2 selection;
-uniform uint texwidth;
+uniform uvec2 selection;  // start and end of selection, in bytes
+uniform uint texwidth;    // width of data texture
 
-uniform usampler2D romtex;
-uniform usampler2D annotex;
+uniform usampler2D romtex;  // data texture
+uniform usampler2D annotex; // annotation texture
 
 /// zoom factor (2.0 = 2x)
 uniform float zoom;
@@ -25,14 +25,17 @@ uniform float zoom;
 uniform vec2 ul_offset;
 
 void main() {
+    // Convert from texture coordinates to screen coordinates.
     vec2 fc = vec2( v_tex_coords[0] * float(win[2]),
                     (1.0 - v_tex_coords[1]) * float(win[3]));
+    // Scale the coordinates by the zoom factor and adjust for the panning location.
     fc = (fc + ul_offset) / zoom;
-    // fc is now absolute coordinates in bitmap
+    // Handle points above or to the left of the bitmap display.
     if (fc[0] < 0 || fc[1] < 0) {
         color = vec4(0.0,0.0,0.4,1.0);
         return;
     }
+    // Adjust for the top left corner of the window (normally 0,0)
     uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
     uint col = ac.x / (bitstride + spacing);
     uint row = ac.y;
