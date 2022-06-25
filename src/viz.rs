@@ -226,7 +226,7 @@ impl<'a> Visualizer<'a> {
             gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
             
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
-            gl::Uniform1ui(self.uniloc("colwidth"), self.word);
+            gl::Uniform1ui(self.uniloc("colwidth"), self.word / self.bpp as u32);
             gl::Uniform1ui(self.uniloc("colheight"), self.col_height);
             //gl::Uniform1ui(self.uniloc("swap_endian"), if self.swap_endian { 1 } else { 0 } as u32);
             gl::Uniform1ui(self.uniloc("colspace"), self.spacing);
@@ -338,8 +338,11 @@ impl<'a> Visualizer<'a> {
     fn handle_kb(&mut self, key : glfw::Key) {
         use glfw::Key::*;
         match key {
-	    Num1 => self.bpp = 1,
-	    Num8 => self.bpp = 8,
+            Num1 => self.bpp = 1,
+            Num2 => self.bpp = 2,
+            Num4 => self.bpp = 4,
+            Num8 => self.bpp = 8,
+
             Escape => self.window.set_should_close(true),
             Up => self.zoom_in(),
             Down => self.zoom_out(),

@@ -60,9 +60,9 @@ void main() {
     uint elidx = (colwidth * colheight * col) + (row * colwidth) + el_in_row;
 
     // find the offset into the texture data.
-    uint ppb = 8u / bpp; // pixels per byte
-    uint tex_off = (elidx / ppb) + dataoff;
-    uint tex_bit_off = elidx % ppb;
+    uint el_per_b = 8u / bpp; // elements per byte
+    uint tex_off = (elidx / el_per_b) + dataoff; // byte into array
+    uint tex_rem = elidx % el_per_b; // element into array; bits into array
 
     // Disabling endianness swap until we find a more reasonable way of expressing it.
     //if (swap_endian == true && bitstride > 8u) {
@@ -83,7 +83,8 @@ void main() {
     uint tex_byte = texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r;
 
     uint tex_mask = (1u<<bpp)-1u;
-    uint tex_val = (tex_byte >> (7u - tex_bit_off)) & tex_mask;
+    uint tex_shift = 7u - (tex_rem * bpp);
+    uint tex_val = (tex_byte >> tex_shift) & tex_mask;
     float rv = float(tex_val); // / float(tex_mask);
 
     // get annotation
