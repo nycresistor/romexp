@@ -2,11 +2,11 @@
 
 ## Current todo
 
-* lint rust errors
-* add 8-bit/1-bit mode toggle
-* add cli and in-app skip adjustment
-* add cli and in-app data end adjustment
-
+* [done] lint rust errors
+* [done] add 8-bit/1-bit mode toggle
+* [done] add cli and in-app skip adjustment
+* [done] add cli and in-app data end adjustment
+* [ ] add handling for hex and octal arguments
 
 
 
