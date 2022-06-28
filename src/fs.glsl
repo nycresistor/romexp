@@ -82,10 +82,12 @@ void main() {
     uint tex_off_y = tex_off / texwidth;
     uint tex_byte = texelFetch(romtex, ivec2(int(tex_off_x),int(tex_off_y)),0).r;
 
+    // Mask: 1bpp = 1, 2bpp = 0x3, 4bpp = 0x0f, 8bpp = 0xff
     uint tex_mask = (1u<<bpp)-1u;
-    uint tex_shift = 7u - (tex_rem * bpp);
+    // Shift for this element. We start at the high bits. (8-bpp) - (elem*bpp)
+    uint tex_shift = (8u - bpp) - (tex_rem * bpp);
     uint tex_val = (tex_byte >> tex_shift) & tex_mask;
-    float rv = float(tex_val); // / float(tex_mask);
+    float rv = float(tex_val) / float(tex_mask);
 
     // get annotation
     uint anno = texelFetch(annotex, ivec2(int(tex_off_x),int(tex_off_y)),0).r;
