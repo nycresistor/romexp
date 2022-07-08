@@ -7,7 +7,10 @@
 * [done] add cli and in-app skip adjustment
 * [done] add cli and in-app data end adjustment
 * [ ] add handling for hex and octal arguments
-
+* [ ] control vertical column size
+* [ ] fix selection in multiple bpp modes
+* [ ] select areas abd view seperately
+* [ ] tweak numbers with direct entry
 
 
 ## Old todo
