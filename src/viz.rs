@@ -410,10 +410,14 @@ impl<'a> Visualizer<'a> {
         } else {
             let column = x as u32/(self.word + self.spacing);
             let row = y as u32;
-            let col_byte_w = self.word/8;
-            let mut boff = (x as u32 % (self.word + self.spacing))/8;
-            if boff >= self.word { boff = self.word -1; }
-            let idx = (column * self.col_height * col_byte_w) + (row * col_byte_w) + boff;
+            let el_in_row = x as u32 % (self.word + self.spacing);
+
+            let el_per_b = (8 / self.bpp) as u32;
+            let cw_in_b = self.word / (self.bpp as u32);
+
+            let el_idx = (cw_in_b * self.col_height * column) + (row * cw_in_b) + el_in_row;
+            let idx = el_idx / el_per_b;
+
             if idx < self.data_len as u32 { Some(idx) } else { None }
         }
     }
