@@ -10,6 +10,35 @@ use annotation;
 use glutil;
 use font;
 
+// A DataView describes what portion of the data texture is rendered on-screen, and how it is
+// laid out.
+pub struct DataView {
+    data_bounds : (usize, usize),    // Start and endpoints of rendered data
+    column_dim : (u32, u32),         // The width and height of individual columns of data, in pixels
+    column_spacing : u32,            // The space, in pixels, between adjacent columns
+    bits_per_pixel : u8,             // The number of bits to render per picture element
+    // endianness is not yet implemented, but would be part of a dataview
+}
+
+impl DataView {
+    /// Compute the width of a column, in bytes.
+    pub fn byte_width(&self) -> u32 {
+        return self.column_dim.0 / (8 * self.bits_per_pixel) as u32;
+    }
+    /// Compute length of data displayed.
+    pub fn data_len(&self) -> usize {
+        return self.data_bounds.1 - self.data_bounds.0;
+    }
+}
+
+// The ViewState describes how the data is viewed visually: panning, zooming, etc.
+pub struct ViewState {
+    zoom : f32,                     // The zoom level
+    ul_offset : (f32, f32),         // The offset of the top left corner of the view relative to the
+                                    // top left corner of the window, in pre-zoomed pixels
+    selection : (u32, u32),         // The current area selected, as indexes into the data texture
+}
+
 // Shader sources
 static VS_SRC: &'static str = include_str!("vs.glsl");
 
@@ -44,17 +73,7 @@ pub struct Visualizer<'a> {
     pub events : std::sync::mpsc::Receiver<(f64, WindowEvent)>,
     program : GLuint,
     vao : GLuint,
-    data_len : usize,
-    data_offset : usize,
-    bpp : u8,
-    /// width, in bits, of each column
-    word : u32,
-    swap_endian : bool,
-    /// height, in rows, of each colum
-    col_height : u32,
-    /// spacing, in pixels, between columns
-    spacing : u32,
-    /// start and end of current selection, as byte idx
+    dview : DataView,
     selection : (u32, u32),
     texture : GLuint,
     annotation_tex : GLuint,
@@ -170,13 +189,12 @@ impl<'a> Visualizer<'a> {
             events : events,
             program : program,
             vao : vao,
-            data_len : dat.len(),
-	    data_offset : 0,
-	    bpp : 1,
-            word : 8,
-            swap_endian : false,
-            col_height : 512,
-            spacing : 4,
+            dview : DataView {
+                data_bounds : (0, dat.len()),
+                column_dim : (8, 512),
+                column_spacing : 4,
+                bits_per_pixel : 1,
+            },
             selection : (0,0),
             texture : texture,
             annotation_tex : annotation_tex,
@@ -192,19 +210,19 @@ impl<'a> Visualizer<'a> {
     }
 
     pub fn set_offset(&mut self, offset : usize) {
-	self.data_offset = offset;
+        self.dview.data_bounds.0 = offset;
     }
     
     pub fn set_selection(&mut self, start : u32, finish : u32) {
         self.selection = (start, finish);
     }
 
-    pub fn set_word(&mut self, word : u32) {
-        self.word = word;
+    pub fn set_col_width(&mut self, width : u32) {
+        self.dview.column_dim.0 = width;
     }
 
     pub fn set_spacing(&mut self, spacing : u32) {
-        self.spacing = spacing;
+        self.dview.column_spacing = spacing;
     }
 
     pub fn uniloc(&self, name : &str) -> GLint {
@@ -226,13 +244,12 @@ impl<'a> Visualizer<'a> {
             gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
             
             gl::Uniform4ui(self.uniloc("win"),0,0,size.0 as u32,size.1 as u32);
-            gl::Uniform1ui(self.uniloc("colwidth"), self.word / self.bpp as u32);
-            gl::Uniform1ui(self.uniloc("colheight"), self.col_height);
-            //gl::Uniform1ui(self.uniloc("swap_endian"), if self.swap_endian { 1 } else { 0 } as u32);
-            gl::Uniform1ui(self.uniloc("colspace"), self.spacing);
-            gl::Uniform1ui(self.uniloc("datalen"), self.data_len as u32);
-            gl::Uniform1ui(self.uniloc("dataoff"), self.data_offset as u32);
-            gl::Uniform1ui(self.uniloc("bpp"), self.bpp as u32);
+            gl::Uniform1ui(self.uniloc("colwidth"), self.dview.column_dim.0);
+            gl::Uniform1ui(self.uniloc("colheight"), self.dview.column_dim.1);
+            gl::Uniform1ui(self.uniloc("colspace"), self.dview.column_spacing);
+            gl::Uniform1ui(self.uniloc("datalen"), (self.dview.data_bounds.1 - self.dview.data_bounds.0) as u32);
+            gl::Uniform1ui(self.uniloc("dataoff"), self.dview.data_bounds.0 as u32);
+            gl::Uniform1ui(self.uniloc("bpp"), self.dview.bits_per_pixel as u32);
             gl::Uniform2ui(self.uniloc("selection"), self.selection.0, self.selection.1);
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
             gl::Uniform1i(self.uniloc("romtex"), 0 as i32); //self.texture as i32);
@@ -246,7 +263,7 @@ impl<'a> Visualizer<'a> {
         let bfc = self.byte_from_coords(self.mouse_state.last_pos);
         {
             let text = match bfc {
-                Some(x) => format!("0x{:x} ({:x})",x,x%(self.word/8)),
+                Some(x) => format!("0x{:x} ({:x})",x,x%(self.dview.byte_width())),
                 None => String::new(),
             };
             let text_sz = self.font.size(text.as_str());
@@ -255,7 +272,7 @@ impl<'a> Visualizer<'a> {
             self.font.draw(size, location, text.as_str());
         }
         {
-            let status = format!("str 0x{:x}",self.word/8);
+            let status = format!("str 0x{:x}",self.dview.byte_width());
             let text_sz = self.font.size(status.as_str());
             let location = (size.0 - text_sz.0 as i32,
                            size.1 - 2*text_sz.1 as i32);
@@ -323,7 +340,7 @@ impl<'a> Visualizer<'a> {
     fn update_annotations(&mut self) {
         let maxw : usize = 16384;
         let tw : usize = maxw;
-        let th : usize = (self.data_len + (maxw-1))/maxw;
+        let th : usize = (self.dview.data_len() + (maxw-1))/maxw;
         let cloned_annot = self.annotation_d.clone();
         unsafe {
             gl::ActiveTexture(gl::TEXTURE1);
@@ -338,24 +355,24 @@ impl<'a> Visualizer<'a> {
     fn handle_kb(&mut self, key : glfw::Key) {
         use glfw::Key::*;
         match key {
-            Num1 => self.bpp = 1,
-            Num2 => self.bpp = 2,
-            Num4 => self.bpp = 4,
-            Num8 => self.bpp = 8,
+            Num1 => self.dview.bits_per_pixel = 1,
+            Num2 => self.dview.bits_per_pixel = 2,
+            Num4 => self.dview.bits_per_pixel = 4,
+            Num8 => self.dview.bits_per_pixel = 8,
 
             Escape => self.window.set_should_close(true),
             Up => self.zoom_in(),
             Down => self.zoom_out(),
             Right => {
-                let s = self.word + 8;
-                self.set_word(s);
+                let s = self.dview.column_dim.0 + (8 / self.dview.bits_per_pixel) as u32;
+                self.set_col_width(s);
             },
             Left => {
-                let s = self.word - 8;
-                self.set_word(if s < 8 { 8 } else { s });
+                let s = self.dview.column_dim.0 - (8 / self.dview.bits_per_pixel) as u32;
+                self.set_col_width(if s < 8 { 8 } else { s });
             },
             GraveAccent => {
-                self.swap_endian = !self.swap_endian;
+                // nop until we do endiannesss
             },
             S => {
                 use annotation::AnnotationEngine;
@@ -389,7 +406,7 @@ impl<'a> Visualizer<'a> {
                 let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
                 let drag_start = self.byte_from_coords(start);
                 match (drag_start, drag_end) {
-                    (Some(s), Some(e)) => self.set_selection(s * 8, e * 8), // *8 because bit index
+                    (Some(s), Some(e)) => self.set_selection(s, e),
                     _ => {},
                 };
             },
@@ -404,21 +421,22 @@ impl<'a> Visualizer<'a> {
                       (pos.1 + self.ul_offset.1 as f64)/self.zoom as f64);
         // add deltas to upper left corner of image
         
-        if x < 0.0 || y < 0.0 || y >= self.col_height as f64
+        if x < 0.0 || y < 0.0 || y >= self.dview.column_dim.1 as f64
         {
             None
         } else {
-            let column = x as u32/(self.word + self.spacing);
+            let cw = self.dview.column_dim.0 + self.dview.column_spacing;
+            let column = x as u32/cw;
             let row = y as u32;
-            let el_in_row = x as u32 % (self.word + self.spacing);
+            let el_in_row = x as u32 % cw;
 
-            let el_per_b = (8 / self.bpp) as u32;
-            let cw_in_b = self.word / (self.bpp as u32);
+            let el_per_b = (8 / self.dview.bits_per_pixel) as u32;
+            let cw_in_b = self.dview.column_dim.0 / (self.dview.bits_per_pixel as u32);
 
-            let el_idx = (cw_in_b * self.col_height * column) + (row * cw_in_b) + el_in_row;
+            let el_idx = (cw_in_b * self.dview.column_dim.1 * column) + (row * cw_in_b) + el_in_row;
             let idx = el_idx / el_per_b;
 
-            if idx < self.data_len as u32 { Some(idx) } else { None }
+            if idx < self.dview.data_len() as u32 { Some(idx) } else { None }
         }
     }
 

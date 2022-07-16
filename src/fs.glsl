@@ -95,7 +95,9 @@ void main() {
     if (anno != 0u) {
         c.r = 0.0; 
     }
-    if (selection[0] != selection[1] && elidx >= selection[0] && elidx <= selection[1]+7u) {
+    uint select_start = selection[0];
+    uint select_end = selection[1];
+    if (select_start != select_end && elidx >= select_start && elidx <= select_end) {
         c.b = 0.0; c.g = 0.0;
     }
     color = c;

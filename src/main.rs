@@ -62,7 +62,7 @@ fn main() {
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     let mut viz = viz::Visualizer::new(&mut glfw, (width, height), unsafe { rom.as_slice() });
-    viz.set_word(word);
+    viz.set_col_width(word);
     viz.set_spacing(spacing);
     viz.set_offset(offset);
     viz.window.make_current();
