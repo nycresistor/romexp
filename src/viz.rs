@@ -78,12 +78,10 @@ pub struct Visualizer<'a> {
     program: GLuint,
     vao: GLuint,
     dview: DataView,
-    selection: (u32, u32),
+    vstate: ViewState,
     texture: GLuint,
     annotation_tex: GLuint,
     annotation_d: Vec<u8>,
-    zoom: f32,
-    ul_offset: (f32, f32), // offset of upper left hand corner IN PX OF CURRENT ZOOM
     pub closed: bool,
     mouse_state: MouseState,
     dat: &'a [u8],
@@ -221,12 +219,14 @@ impl<'a> Visualizer<'a> {
                 column_spacing: 4,
                 bits_per_pixel: 1,
             },
-            selection: (0, 0),
+            vstate: ViewState {
+                zoom: 1.0,
+                ul_offset: (0.0, 0.0),
+                selection: (0, 0),
+            },
             texture: texture,
             annotation_tex: annotation_tex,
             annotation_d: annotation_d,
-            zoom: 1.0,
-            ul_offset: (0.0, 0.0),
             closed: false,
             mouse_state: MouseState::new(),
             dat: dat,
@@ -240,7 +240,7 @@ impl<'a> Visualizer<'a> {
     }
 
     pub fn set_selection(&mut self, start: u32, finish: u32) {
-        self.selection = (start, finish);
+        self.vstate.selection = (start, finish);
     }
 
     pub fn set_col_width(&mut self, width: u32) {
@@ -279,12 +279,12 @@ impl<'a> Visualizer<'a> {
             );
             gl::Uniform1ui(self.uniloc("dataoff"), self.dview.data_bounds.0 as u32);
             gl::Uniform1ui(self.uniloc("bpp"), self.dview.bits_per_pixel as u32);
-            gl::Uniform2ui(self.uniloc("selection"), self.selection.0, self.selection.1);
+            gl::Uniform2ui(self.uniloc("selection"), self.vstate.selection.0, self.vstate.selection.1);
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
             gl::Uniform1i(self.uniloc("romtex"), 0 as i32); //self.texture as i32);
             gl::Uniform1i(self.uniloc("annotex"), 1 as i32); //self.annotation_tex as i32);
-            gl::Uniform2f(self.uniloc("ul_offset"), self.ul_offset.0, self.ul_offset.1);
-            gl::Uniform1f(self.uniloc("zoom"), self.zoom);
+            gl::Uniform2f(self.uniloc("ul_offset"), self.vstate.ul_offset.0, self.vstate.ul_offset.1);
+            gl::Uniform1f(self.uniloc("zoom"), self.vstate.zoom);
 
             gl::BindVertexArray(self.vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
@@ -331,11 +331,11 @@ impl<'a> Visualizer<'a> {
             let ulnew1 = ul1 + (cursor1 * (1.0 - 1.0 / (newz / oldz)));
             ulnew1 * newz
         }
-        self.ul_offset = (
-            findul(self.ul_offset.0, cursor.0 as f32, self.zoom, z),
-            findul(self.ul_offset.1, cursor.1 as f32, self.zoom, z),
+        self.vstate.ul_offset = (
+            findul(self.vstate.ul_offset.0, cursor.0 as f32, self.vstate.zoom, z),
+            findul(self.vstate.ul_offset.1, cursor.1 as f32, self.vstate.zoom, z),
         );
-        self.zoom = z;
+        self.vstate.zoom = z;
     }
 
     fn zoom_to(&mut self, z: f32) {
@@ -345,16 +345,16 @@ impl<'a> Visualizer<'a> {
             c - half / newz
         }
         let size = self.window.get_size();
-        self.ul_offset = (
-            findul(self.ul_offset.0, size.0 as u32, self.zoom, z),
-            findul(self.ul_offset.1, size.1 as u32, self.zoom, z),
+        self.vstate.ul_offset = (
+            findul(self.vstate.ul_offset.0, size.0 as u32, self.vstate.zoom, z),
+            findul(self.vstate.ul_offset.1, size.1 as u32, self.vstate.zoom, z),
         );
-        self.zoom = z;
+        self.vstate.zoom = z;
     }
 
     fn zoom_in(&mut self) {
-        let z = if self.zoom >= 1.0 {
-            self.zoom + 0.1
+        let z = if self.vstate.zoom >= 1.0 {
+            self.vstate.zoom + 0.1
         } else {
             1.0
         };
@@ -362,8 +362,8 @@ impl<'a> Visualizer<'a> {
     }
 
     fn zoom_out(&mut self) {
-        let z = if self.zoom > 1.0 {
-            self.zoom - 0.1
+        let z = if self.vstate.zoom > 1.0 {
+            self.vstate.zoom - 0.1
         } else {
             1.0
         };
@@ -371,7 +371,7 @@ impl<'a> Visualizer<'a> {
     }
 
     fn handle_scroll(&mut self, ydelta: f64) {
-        let z = self.zoom * (1.1 as f32).powf(ydelta as f32);
+        let z = self.vstate.zoom * (1.1 as f32).powf(ydelta as f32);
         let pos = self.mouse_state.last_pos;
         self.zoom_to_center(pos, if z >= 1.0 { z } else { 1.0 });
     }
@@ -449,7 +449,7 @@ impl<'a> Visualizer<'a> {
                 let (dx, dy) = (x2 - x1, y2 - y1);
                 let xoff = original_ul.0 - dx as f32;
                 let yoff = original_ul.1 - dy as f32;
-                self.ul_offset = (xoff, yoff);
+                self.vstate.ul_offset = (xoff, yoff);
             }
             MouseDragOp::Select { start } => {
                 let drag_end = self.byte_from_coords(self.mouse_state.last_pos);
@@ -467,8 +467,8 @@ impl<'a> Visualizer<'a> {
         // find (possibly off-screen) location of 0,0 in data.
         // adjust for zoom
         let (x, y) = (
-            (pos.0 + self.ul_offset.0 as f64) / self.zoom as f64,
-            (pos.1 + self.ul_offset.1 as f64) / self.zoom as f64,
+            (pos.0 + self.vstate.ul_offset.0 as f64) / self.vstate.zoom as f64,
+            (pos.1 + self.vstate.ul_offset.1 as f64) / self.vstate.zoom as f64,
         );
         // add deltas to upper left corner of image
 
@@ -507,7 +507,7 @@ impl<'a> Visualizer<'a> {
                 self.mouse_state.op = match (button, modifiers) {
                     (glfw::MouseButtonLeft, glfw::Modifiers::Shift)
                     | (glfw::MouseButtonMiddle, _) => MouseDragOp::Panning {
-                        original_ul: self.ul_offset,
+                        original_ul: self.vstate.ul_offset,
                         start: self.mouse_state.last_pos,
                     },
                     (glfw::MouseButtonLeft, _) => MouseDragOp::Select {
