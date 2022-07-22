@@ -129,13 +129,6 @@ impl<'a> Visualizer<'a> {
         unsafe {
             // Bind our shader programs
             gl::UseProgram(program);
-            /* This is not necessary unless you have more than one "out" variable.
-            gl::BindFragDataLocation(
-                program,
-                0,
-                std::ffi::CString::new("color").unwrap().as_ptr(),
-            );
-            */
 
             // Create the vertex array object, and add all the data necessary to
             // draw the triangles.
