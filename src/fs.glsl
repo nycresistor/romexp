@@ -15,10 +15,7 @@ uniform uvec2 column_dim;      // the width and height of a column, in elements
 uniform uint column_spacing;   // spacing between adjacent columns, in elements
 
 uniform uvec2 data_bounds;     // start and end points of data to display
-uniform uint bpp;         // bits per pixel (1 for bitmap, 8 for bytemap, etc)
-
-// Disabling endian swap for now
-// uniform bool swap_endian; // swap byte-endianness when true
+uniform uint bpp;              // bits per pixel (1 for bitmap, 8 for bytemap, etc)
 
 uniform uvec2 selection;  // start and end of selection, in bytes
 uniform uint texwidth;    // width of data texture
@@ -94,8 +91,8 @@ void main() {
     if (anno != 0u) {
         c.r = 0.0; 
     }
-    uint select_start = selection[0];
-    uint select_end = selection[1];
+    uint select_start = selection[0] * el_per_b;
+    uint select_end = selection[1] * el_per_b;
     if (select_start != select_end && elidx >= select_start && elidx <= select_end) {
         c.b = 0.0; c.g = 0.0;
     }

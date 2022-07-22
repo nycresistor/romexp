@@ -23,11 +23,17 @@ pub struct DataView {
 impl DataView {
     /// Compute the width of a column, in bytes.
     pub fn byte_width(&self) -> u32 {
-        return self.column_dim.0 / (8 * self.bits_per_pixel) as u32;
+        return self.column_dim.0 / (8 / self.bits_per_pixel) as u32;
     }
     /// Compute length of data displayed.
     pub fn data_len(&self) -> usize {
         return self.data_bounds.1 - self.data_bounds.0;
+    }
+    /// Set the bits per pixel, while maintaining the byte width
+    pub fn set_bpp(&mut self, bpp : u8) {
+        let bw = self.byte_width();
+        self.bits_per_pixel = bpp;
+        self.column_dim.0 = bw * (8 / bpp) as u32;
     }
 }
 
@@ -301,22 +307,29 @@ impl<'a> Visualizer<'a> {
             gl::BindVertexArray(self.vao);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }
+        // Draw text on display
+        // What's going to get drawn?
+        // -- current mouse point
+        // -- current selection information
+        // TODO: organize text on screen and add selection start/end points
         let bfc = self.byte_from_coords(self.mouse_state.last_pos);
+        let text = match bfc {
+            Some(x) => format!("0x{:x} ({:x})\n", x, x % (self.dview.byte_width())),
+            None => String::from("Not in bounds\n"),
+        } +
+        &if self.vstate.selection.0 != self.vstate.selection.1 {
+            format!("Selection 0x{:x} - 0x{:x}\n", self.vstate.selection.0, self.vstate.selection.1)
+        } else { String::from("No selection\n") } +
+        &format!("column dimensions: {} x {}\n",self.dview.column_dim.0, self.dview.column_dim.1) +
+        &format!("column width (B): 0x{:x}",self.dview.byte_width());
+
         {
-            let text = match bfc {
-                Some(x) => format!("0x{:x} ({:x})", x, x % (self.dview.byte_width())),
-                None => String::new(),
-            };
             let text_sz = self.font.size(text.as_str());
             let location = (size.0 - text_sz.0 as i32, size.1 - text_sz.1 as i32);
             self.font.draw(size, location, text.as_str());
         }
-        {
-            let status = format!("str 0x{:x}", self.dview.byte_width());
-            let text_sz = self.font.size(status.as_str());
-            let location = (size.0 - text_sz.0 as i32, size.1 - 2 * text_sz.1 as i32);
-            self.font.draw(size, location, status.as_str());
-        }
+
+        /*
         match bfc {
             Some(x) => match self.annotation_store {
                 Some(ref store) => {
@@ -332,6 +345,7 @@ impl<'a> Visualizer<'a> {
             },
             None => {}
         }
+        */
         self.window.swap_buffers();
     }
 
@@ -414,10 +428,10 @@ impl<'a> Visualizer<'a> {
     fn handle_kb(&mut self, key: glfw::Key) {
         use glfw::Key::*;
         match key {
-            Num1 => self.dview.bits_per_pixel = 1,
-            Num2 => self.dview.bits_per_pixel = 2,
-            Num4 => self.dview.bits_per_pixel = 4,
-            Num8 => self.dview.bits_per_pixel = 8,
+            Num1 => self.dview.set_bpp(1),
+            Num2 => self.dview.set_bpp(2),
+            Num4 => self.dview.set_bpp(4),
+            Num8 => self.dview.set_bpp(8),
 
             Escape => self.window.set_should_close(true),
             Up => self.zoom_in(),
