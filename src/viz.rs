@@ -288,11 +288,8 @@ impl<'a> Visualizer<'a> {
             gl::Uniform4ui(self.uniloc("win"), 0, 0, size.0 as u32, size.1 as u32);
             gl::Uniform2ui(self.uniloc("column_dim"), self.dview.column_dim.0, self.dview.column_dim.1);
             gl::Uniform1ui(self.uniloc("column_spacing"), self.dview.column_spacing);
-            gl::Uniform1ui(
-                self.uniloc("datalen"),
-                (self.dview.data_bounds.1 - self.dview.data_bounds.0) as u32,
-            );
-            gl::Uniform1ui(self.uniloc("dataoff"), self.dview.data_bounds.0 as u32);
+            gl::Uniform2ui(self.uniloc("data_bounds"),
+                self.dview.data_bounds.0 as u32, self.dview.data_bounds.1 as u32 );
             gl::Uniform1ui(self.uniloc("bpp"), self.dview.bits_per_pixel as u32);
             gl::Uniform2ui(self.uniloc("selection"), self.vstate.selection.0, self.vstate.selection.1);
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);

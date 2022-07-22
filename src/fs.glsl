@@ -14,8 +14,7 @@ uniform vec2 ul_offset;   // offset of upper left hand corner in pixels at the c
 uniform uvec2 column_dim;      // the width and height of a column, in elements
 uniform uint column_spacing;   // spacing between adjacent columns, in elements
 
-uniform uint datalen;     // total length of data, in bytes
-uniform uint dataoff;     // offset before start of data to display, in bytes
+uniform uvec2 data_bounds;     // start and end points of data to display
 uniform uint bpp;         // bits per pixel (1 for bitmap, 8 for bytemap, etc)
 
 // Disabling endian swap for now
@@ -61,7 +60,7 @@ void main() {
 
     // find the offset into the texture data.
     uint el_per_b = 8u / bpp; // elements per byte
-    uint tex_off = (elidx / el_per_b) + dataoff; // byte into array
+    uint tex_off = (elidx / el_per_b) + data_bounds[0]; // byte into array
     uint tex_rem = elidx % el_per_b; // element into array; bits into array
 
     // Disabling endianness swap until we find a more reasonable way of expressing it.
@@ -71,7 +70,7 @@ void main() {
     //}
 
     // Handle points past the end of the data.
-    if (tex_off >= datalen) {
+    if (tex_off >= data_bounds[1]) {
         color = vec4(0.0,0.0,0.4,1.0);
         return;
     }
