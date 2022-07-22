@@ -1,4 +1,4 @@
-#version 130
+#version 330
 
 // The texture coordinates are mapped over the window from (0.0,0.0) to (1.0,1.0)
 in vec2 v_tex_coords;
@@ -11,9 +11,8 @@ uniform uvec4 win;        // bounds of physical window
 uniform float zoom;       // zoom factor (2.0 = 2x)
 uniform vec2 ul_offset;   // offset of upper left hand corner in pixels at the current zoom level
 
-uniform uint colwidth;    // width of a column of data, in elements
-uniform uint colspace;    // spacing between adjacent columns, in elements
-uniform uint colheight;   // height of a column of data, in elements
+uniform uvec2 column_dim;      // the width and height of a column, in elements
+uniform uint column_spacing;   // spacing between adjacent columns, in elements
 
 uniform uint datalen;     // total length of data, in bytes
 uniform uint dataoff;     // offset before start of data to display, in bytes
@@ -46,18 +45,19 @@ void main() {
     uvec2 ac = uvec2( win.x + uint(fc.x), win.y + uint(fc.y) );
 
     // Compute which column, the row of the column, and the element index within it
-    uint col = ac.x / (colwidth + colspace);
+    uint intercolumn = column_dim[0] + column_spacing;
+    uint col = ac.x / intercolumn;
     uint row = ac.y;
-    uint el_in_row = ac.x % (colwidth + colspace);
+    uint el_in_row = ac.x % intercolumn;
 
     // Handle points below the data or in the gutters between columns.
-    if (el_in_row >= colwidth || row > colheight) {
+    if (el_in_row >= column_dim[0]|| row > column_dim[1]) {
         color = vec4(0.0,0.0,0.4,1.0);
         return;
     }
 
     // compute the element index in the array.
-    uint elidx = (colwidth * colheight * col) + (row * colwidth) + el_in_row;
+    uint elidx = (column_dim[0] * column_dim[1] * col) + (row * column_dim[0]) + el_in_row;
 
     // find the offset into the texture data.
     uint el_per_b = 8u / bpp; // elements per byte

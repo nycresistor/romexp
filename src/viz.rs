@@ -152,6 +152,7 @@ impl<'a> Visualizer<'a> {
                 gl::STATIC_DRAW,
             );
 
+            // Specify the input attributes
             let pos_attrib = glutil::attrib_loc(program, "position") as GLuint;
             gl::EnableVertexAttribArray(pos_attrib);
             gl::VertexAttribPointer(pos_attrib, 2, gl::FLOAT, gl::FALSE, 4 * 4, std::ptr::null());
@@ -285,9 +286,8 @@ impl<'a> Visualizer<'a> {
             gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
 
             gl::Uniform4ui(self.uniloc("win"), 0, 0, size.0 as u32, size.1 as u32);
-            gl::Uniform1ui(self.uniloc("colwidth"), self.dview.column_dim.0);
-            gl::Uniform1ui(self.uniloc("colheight"), self.dview.column_dim.1);
-            gl::Uniform1ui(self.uniloc("colspace"), self.dview.column_spacing);
+            gl::Uniform2ui(self.uniloc("column_dim"), self.dview.column_dim.0, self.dview.column_dim.1);
+            gl::Uniform1ui(self.uniloc("column_spacing"), self.dview.column_spacing);
             gl::Uniform1ui(
                 self.uniloc("datalen"),
                 (self.dview.data_bounds.1 - self.dview.data_bounds.0) as u32,
