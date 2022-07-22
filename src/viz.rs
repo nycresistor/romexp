@@ -72,28 +72,44 @@ impl MouseState {
     }
 }
 
+/// The top-level visualizer window.
 pub struct Visualizer<'a> {
     pub window: Window,
     pub events: std::sync::mpsc::Receiver<(f64, WindowEvent)>,
-    program: GLuint,
-    vao: GLuint,
+
+    // GL state
+    program: GLuint,        // the GL program, consisting of shaders.
+    vao: GLuint,            // the vertex array object.
+    texture: GLuint,        // the data being examined.
+    annotation_tex: GLuint, // the annotation data to display.
+
     dview: DataView,
     vstate: ViewState,
-    texture: GLuint,
-    annotation_tex: GLuint,
     annotation_d: Vec<u8>,
-    pub closed: bool,
+    pub closed: bool,       // Whether the window has been closed; true at shutdown.
     mouse_state: MouseState,
     dat: &'a [u8],
     annotation_store: Option<annotation::AnnotationStore>,
     font: font::Font,
 }
 
+// The vertices for the two triangles that make up the window. Each vertex is composed of
+// four values. The first pair is the position of the corners of the triangles in 3d space
+// (the Z coordinate is always 0.0). and the second pair is the location of that same point
+// in the texture coordinate space. (Thus, the upper left corner is (0,0), which is the first
+// byte of the displayed data.
 const VERTICES: [GLfloat; 16] = [
-    -1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 0.0,
+    -1.0, 1.0,   0.0, 1.0,
+     1.0, 1.0,   1.0, 1.0,
+     1.0, -1.0,  1.0, 0.0,
+    -1.0, -1.0,  0.0, 0.0,
 ];
 
-const INDICES: [GLuint; 6] = [0, 1, 2, 0, 3, 2];
+// The indices of the vertexes of two triangles which cover the window.
+const INDICES: [GLuint; 6] = [
+    0, 1, 2,
+    0, 3, 2
+];
 
 impl<'a> Visualizer<'a> {
     pub fn new(glfw: &mut glfw::Glfw, size: (u32, u32), dat: &'a [u8]) -> Visualizer<'a> {
@@ -107,10 +123,22 @@ impl<'a> Visualizer<'a> {
         window.set_mouse_button_polling(true);
         window.set_scroll_polling(true);
         window.set_size_polling(true);
-        let mut vbo: GLuint = 0;
-        let mut ebo: GLuint = 0;
-        let mut vao: GLuint = 0;
+        let mut vbo: GLuint = 0; // The ID of the vertex buffer object, referencing the coordinates.
+        let mut ebo: GLuint = 0; // The ID of the element buffer object, referencing the indices.
+        let mut vao: GLuint = 0; // The ID of the vertex array object, which collects the above.
         unsafe {
+            // Bind our shader programs
+            gl::UseProgram(program);
+            /* This is not necessary unless you have more than one "out" variable.
+            gl::BindFragDataLocation(
+                program,
+                0,
+                std::ffi::CString::new("color").unwrap().as_ptr(),
+            );
+            */
+
+            // Create the vertex array object, and add all the data necessary to
+            // draw the triangles.
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
@@ -129,12 +157,6 @@ impl<'a> Visualizer<'a> {
                 4 * 6,
                 INDICES.as_ptr() as *const _,
                 gl::STATIC_DRAW,
-            );
-            gl::UseProgram(program);
-            gl::BindFragDataLocation(
-                program,
-                0,
-                std::ffi::CString::new("color").unwrap().as_ptr(),
             );
 
             let pos_attrib = glutil::attrib_loc(program, "position") as GLuint;
