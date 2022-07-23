@@ -47,6 +47,13 @@ fn main() {
                 .default_value("0"),
         )
         .arg(
+            Arg::with_name("zoom")
+                .help("initial zoom level")
+                .short('z')
+                .takes_value(true)
+                .default_value("1.0"),
+        )
+        .arg(
             Arg::with_name("ROM")
                 .help("ROM file to analyze")
                 .required(true),
@@ -67,6 +74,7 @@ fn main() {
     let height = 512;
     let spacing = value_t_or_exit!(matches, "intercolumn", u32); // default spacing in px
     let offset = value_t_or_exit!(matches, "offset", usize); // initial offset
+    let zoom = value_t_or_exit!(matches, "zoom", f32); // initial offset
     let bytes_per_column = (word / 8) * height;
     let columns = rom.len() as u32 / bytes_per_column;
     let width = cmp::max(512, columns * (word + spacing));
@@ -76,6 +84,7 @@ fn main() {
     viz.set_col_width(word);
     viz.set_spacing(spacing);
     viz.set_offset(offset);
+    viz.set_zoom(zoom);
     viz.window.make_current();
     glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
     while !viz.window.should_close() {

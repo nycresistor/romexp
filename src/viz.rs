@@ -273,6 +273,10 @@ impl<'a> Visualizer<'a> {
         self.dview.column_spacing = spacing;
     }
 
+    pub fn set_zoom(&mut self, zoom: f32) {
+        self.vstate.zoom = zoom;
+    }
+
     pub fn uniloc(&self, name: &str) -> GLint {
         let c_str = std::ffi::CString::new(name.as_bytes()).unwrap();
         let loc = unsafe { gl::GetUniformLocation(self.program, c_str.as_ptr()) };
