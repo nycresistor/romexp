@@ -91,9 +91,7 @@ void main() {
     if (anno != 0u) {
         c.r = 0.0; 
     }
-    uint select_start = selection[0] * el_per_b;
-    uint select_end = selection[1] * el_per_b;
-    if (select_start != select_end && elidx >= select_start && elidx <= select_end) {
+    if (selection[0] <= tex_off && selection[1] > tex_off) {
         c.b = 0.0; c.g = 0.0;
     }
     color = c;

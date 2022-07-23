@@ -315,7 +315,6 @@ impl<'a> Visualizer<'a> {
         // What's going to get drawn?
         // -- current mouse point
         // -- current selection information
-        // TODO: organize text on screen and add selection start/end points
         let bfc = self.byte_from_coords(self.mouse_state.last_pos);
         let text = match bfc {
             Some(x) => format!("0x{:x} ({:x})\n", x, x % (self.dview.byte_width())),
@@ -505,16 +504,19 @@ impl<'a> Visualizer<'a> {
         if x < 0.0 || y < 0.0 || y >= self.dview.column_dim.1 as f64 {
             None
         } else {
-            let cw = self.dview.column_dim.0 + self.dview.column_spacing;
-            let column = x as u32 / cw;
-            let row = y as u32;
-            let el_in_row = x as u32 % cw;
+            // We now have x,y coordinates in view space
+            let cw = self.dview.column_dim.0 + self.dview.column_spacing; // column width in px
+            let column = x as u32 / cw; // which column is coord in
+            let row = y as u32; // which row is coord in
+            let el_in_row = x as u32 % cw; // which element in the current row is coord in
 
+            // elements per byte
             let el_per_b = (8 / self.dview.bits_per_pixel) as u32;
-            let cw_in_b = self.dview.column_dim.0 / (self.dview.bits_per_pixel as u32);
+            let cw_in_b = self.dview.byte_width();
 
-            let el_idx = (cw_in_b * self.dview.column_dim.1 * column) + (row * cw_in_b) + el_in_row;
-            let idx = el_idx / el_per_b;
+            let el_idx = (cw_in_b * self.dview.column_dim.1 * column) + (row * cw_in_b) +
+                el_in_row / el_per_b;
+            let idx = el_idx;
 
             if idx < self.dview.data_len() as u32 {
                 Some(idx)
