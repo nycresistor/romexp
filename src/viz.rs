@@ -30,7 +30,7 @@ impl DataView {
         return self.data_bounds.1 - self.data_bounds.0;
     }
     /// Set the bits per pixel, while maintaining the byte width
-    pub fn set_bpp(&mut self, bpp : u8) {
+    pub fn set_bpp(&mut self, bpp: u8) {
         let bw = self.byte_width();
         self.bits_per_pixel = bpp;
         self.column_dim.0 = bw * (8 / bpp) as u32;
@@ -92,7 +92,7 @@ pub struct Visualizer<'a> {
     dview: DataView,
     vstate: ViewState,
     annotation_d: Vec<u8>,
-    pub closed: bool,       // Whether the window has been closed; true at shutdown.
+    pub closed: bool, // Whether the window has been closed; true at shutdown.
     mouse_state: MouseState,
     dat: &'a [u8],
     annotation_store: Option<annotation::AnnotationStore>,
@@ -104,14 +104,16 @@ pub struct Visualizer<'a> {
 // (the Z coordinate is always 0.0). and the second pair is the location of that same point
 // in the texture coordinate space. (Thus, the upper left corner is (0,0), which is the first
 // byte of the displayed data.
+#[rustfmt::skip]
 const VERTICES: [GLfloat; 16] = [
-    -1.0, 1.0,   0.0, 1.0,
-     1.0, 1.0,   1.0, 1.0,
+    -1.0,  1.0,  0.0, 1.0,
+     1.0,  1.0,  1.0, 1.0,
      1.0, -1.0,  1.0, 0.0,
     -1.0, -1.0,  0.0, 0.0,
 ];
 
 // The indices of the vertexes of two triangles which cover the window.
+#[rustfmt::skip]
 const INDICES: [GLuint; 6] = [
     0, 1, 2,
     0, 3, 2
@@ -296,16 +298,31 @@ impl<'a> Visualizer<'a> {
             gl::BindTexture(gl::TEXTURE_2D, self.annotation_tex);
 
             gl::Uniform4ui(self.uniloc("win"), 0, 0, size.0 as u32, size.1 as u32);
-            gl::Uniform2ui(self.uniloc("column_dim"), self.dview.column_dim.0, self.dview.column_dim.1);
+            gl::Uniform2ui(
+                self.uniloc("column_dim"),
+                self.dview.column_dim.0,
+                self.dview.column_dim.1,
+            );
             gl::Uniform1ui(self.uniloc("column_spacing"), self.dview.column_spacing);
-            gl::Uniform2ui(self.uniloc("data_bounds"),
-                self.dview.data_bounds.0 as u32, self.dview.data_bounds.1 as u32 );
+            gl::Uniform2ui(
+                self.uniloc("data_bounds"),
+                self.dview.data_bounds.0 as u32,
+                self.dview.data_bounds.1 as u32,
+            );
             gl::Uniform1ui(self.uniloc("bpp"), self.dview.bits_per_pixel as u32);
-            gl::Uniform2ui(self.uniloc("selection"), self.vstate.selection.0, self.vstate.selection.1);
+            gl::Uniform2ui(
+                self.uniloc("selection"),
+                self.vstate.selection.0,
+                self.vstate.selection.1,
+            );
             gl::Uniform1ui(self.uniloc("texwidth"), 16384 as u32);
             gl::Uniform1i(self.uniloc("romtex"), 0 as i32); //self.texture as i32);
             gl::Uniform1i(self.uniloc("annotex"), 1 as i32); //self.annotation_tex as i32);
-            gl::Uniform2f(self.uniloc("ul_offset"), self.vstate.ul_offset.0, self.vstate.ul_offset.1);
+            gl::Uniform2f(
+                self.uniloc("ul_offset"),
+                self.vstate.ul_offset.0,
+                self.vstate.ul_offset.1,
+            );
             gl::Uniform1f(self.uniloc("zoom"), self.vstate.zoom);
 
             gl::BindVertexArray(self.vao);
@@ -319,12 +336,17 @@ impl<'a> Visualizer<'a> {
         let text = match bfc {
             Some(x) => format!("0x{:x} ({:x})\n", x, x % (self.dview.byte_width())),
             None => String::from("Not in bounds\n"),
-        } +
-        &if self.vstate.selection.0 != self.vstate.selection.1 {
-            format!("Selection 0x{:x} - 0x{:x}\n", self.vstate.selection.0, self.vstate.selection.1)
-        } else { String::from("No selection\n") } +
-        &format!("column dimensions: {} x {}\n",self.dview.column_dim.0, self.dview.column_dim.1) +
-        &format!("column width (B): 0x{:x}",self.dview.byte_width());
+        } + &if self.vstate.selection.0 != self.vstate.selection.1 {
+            format!(
+                "Selection 0x{:x} - 0x{:x}\n",
+                self.vstate.selection.0, self.vstate.selection.1
+            )
+        } else {
+            String::from("No selection\n")
+        } + &format!(
+            "column dimensions: {} x {}\n",
+            self.dview.column_dim.0, self.dview.column_dim.1
+        ) + &format!("column width (B): 0x{:x}", self.dview.byte_width());
 
         {
             let text_sz = self.font.size(text.as_str());
@@ -361,8 +383,18 @@ impl<'a> Visualizer<'a> {
             ulnew1 * newz
         }
         self.vstate.ul_offset = (
-            findul(self.vstate.ul_offset.0, cursor.0 as f32, self.vstate.zoom, z),
-            findul(self.vstate.ul_offset.1, cursor.1 as f32, self.vstate.zoom, z),
+            findul(
+                self.vstate.ul_offset.0,
+                cursor.0 as f32,
+                self.vstate.zoom,
+                z,
+            ),
+            findul(
+                self.vstate.ul_offset.1,
+                cursor.1 as f32,
+                self.vstate.zoom,
+                z,
+            ),
         );
         self.vstate.zoom = z;
     }
@@ -514,8 +546,9 @@ impl<'a> Visualizer<'a> {
             let el_per_b = (8 / self.dview.bits_per_pixel) as u32;
             let cw_in_b = self.dview.byte_width();
 
-            let el_idx = (cw_in_b * self.dview.column_dim.1 * column) + (row * cw_in_b) +
-                el_in_row / el_per_b;
+            let el_idx = (cw_in_b * self.dview.column_dim.1 * column)
+                + (row * cw_in_b)
+                + el_in_row / el_per_b;
             let idx = el_idx;
 
             if idx < self.dview.data_len() as u32 {

@@ -60,18 +60,11 @@ void main() {
     uint tex_off = (elidx / el_per_b) + data_bounds[0]; // byte into array
     uint tex_rem = elidx % el_per_b; // element into array; bits into array
 
-    // Disabling endianness swap until we find a more reasonable way of expressing it.
-    //if (swap_endian == true && bitstride > 8u) {
-    //    uint bytes = bitstride / 8u;
-    //    tex_off = ((tex_off / bytes) * bytes) + (bytes - (1u+(tex_off % bytes)));
-    //}
-
     // Handle points past the end of the data.
     if (tex_off >= data_bounds[1]) {
         color = vec4(0.0,0.0,0.4,1.0);
         return;
     }
-
 
     // Find the data in the texture.
     uint tex_off_x = tex_off % texwidth;
